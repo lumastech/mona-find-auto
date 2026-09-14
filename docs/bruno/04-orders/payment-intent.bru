@@ -1,0 +1,17 @@
+meta {
+  name: Payment intent
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/order-groups/{{group_id}}/payment-intent
+  body: none
+}
+
+docs {
+  The widget configuration for the card path, which an app opens in a web view.
+  Carries the **public** key only; the secret never leaves the server.
+
+  The reference is `MFA-{orderGroupId}-{attempt}`.
+}

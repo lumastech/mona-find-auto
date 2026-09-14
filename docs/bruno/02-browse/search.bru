@@ -1,0 +1,30 @@
+meta {
+  name: Search
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/v1/search?q=hilux brake pads&sort=relevance
+  auth: none
+}
+
+params:query {
+  q: hilux brake pads
+  sort: relevance
+  ~condition: used
+  ~inspected: 1
+  ~province_id: 1
+  ~radius_km: 25
+  ~page: 1
+}
+
+docs {
+  The same parameters, ranking, tiers and facet counts as the storefront page —
+  both go through `SearchRequest` and `ProductSearch`, so any result a buyer
+  reached in a browser can be reproduced here.
+
+  Default order is exact-match tier, then partial, and within a tier by quality
+  score then **price descending**. Distance is never in the default sort;
+  `sort=nearest` with `radius_km` is how a buyer asks for it.
+}

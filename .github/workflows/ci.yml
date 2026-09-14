@@ -1,0 +1,393 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Laravel Pint
+        run: composer run lint:check
+
+      - name: Oxlint and formatting
+        run: npm run check
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      # Fails the build on a known advisory in a runtime dependency. Dev-only
+      # packages are excluded: Dusk, Pint and Scramble are not installed in
+      # production, so an advisory in one is not a vulnerability in the
+      # deployed application — it is a chore.
+      - name: Composer audit
+        run: composer audit --no-dev --abandoned=report
+
+      # `--omit=dev` for the same reason. `--audit-level=high` because npm
+      # reports transitive low-severity advisories in build tooling that never
+      # ships to a browser, and a gate that cries wolf is a gate people
+      # learn to ignore.
+      - name: npm audit
+        run: npm audit --omit=dev --audit-level=high
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Wayfinder writes the typed route helpers the Vue code imports.
+      - name: Generate route helpers
+        run: php artisan wayfinder:generate --with-form
+
+      - name: PHPStan (level 8)
+        run: composer run types:check
+
+      - name: vue-tsc
+        run: npm run types:check
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: monafind_testing
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          extensions: pdo_mysql, gd, intl, zip, bcmath
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # The suite runs against SQLite in memory (see phpunit.xml); the MySQL
+      # service proves the migrations, including the append-only triggers,
+      # apply on the database production actually uses.
+      - name: Verify migrations against MySQL
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: monafind_testing
+          DB_USERNAME: root
+          DB_PASSWORD: root
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Backend tests
+        run: composer run test
+
+      - name: Component tests
+        run: npm run test
+
+  accessibility:
+    name: Accessibility (WCAG 2.1 AA)
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: monafind_dusk
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+      # The search page cannot render without Meilisearch — the ranking tiers
+      # ARE its ranking rules (see .ai/rules/search.md). Without this service
+      # the search assertion skips itself rather than scanning an error page.
+      meilisearch:
+        image: getmeili/meilisearch:v1.17
+        env:
+          MEILI_MASTER_KEY: ci-master-key
+          MEILI_NO_ANALYTICS: 'true'
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd="curl -f http://localhost:7700/health || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          extensions: pdo_mysql, gd, intl, zip, bcmath
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # axe-core is read off disk by tests/Browser/Concerns/ChecksAccessibility.php
+      # rather than pulled from a CDN, so a CI gate never depends on somebody
+      # else's network being up.
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env.dusk.local
+          sed -i 's|^APP_ENV=.*|APP_ENV=dusk.local|'                 .env.dusk.local
+          sed -i 's|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|'      .env.dusk.local
+          sed -i 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'                  .env.dusk.local
+          sed -i 's|^DB_DATABASE=.*|DB_DATABASE=monafind_dusk|'      .env.dusk.local
+          sed -i 's|^DB_USERNAME=.*|DB_USERNAME=root|'               .env.dusk.local
+          sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'               .env.dusk.local
+          sed -i 's|^SESSION_DRIVER=.*|SESSION_DRIVER=file|'         .env.dusk.local
+          sed -i 's|^CACHE_STORE=.*|CACHE_STORE=file|'               .env.dusk.local
+          sed -i 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=sync|'     .env.dusk.local
+          sed -i 's|^SCOUT_DRIVER=.*|SCOUT_DRIVER=meilisearch|'      .env.dusk.local
+          sed -i 's|^MEILISEARCH_HOST=.*|MEILISEARCH_HOST=http://127.0.0.1:7700|' .env.dusk.local
+          sed -i 's|^MEILISEARCH_KEY=.*|MEILISEARCH_KEY=ci-master-key|'           .env.dusk.local
+          sed -i 's|^INERTIA_SSR_ENABLED=.*|INERTIA_SSR_ENABLED=false|'           .env.dusk.local
+          cp .env.dusk.local .env
+          php artisan key:generate --env=dusk.local
+
+      - name: Generate route helpers
+        run: php artisan wayfinder:generate --with-form
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Migrate and seed
+        run: |
+          php artisan migrate:fresh --seed --force --env=dusk.local
+          php artisan scout:sync-index-settings --env=dusk.local
+
+      - name: Start Chrome driver
+        run: |
+          php artisan dusk:chrome-driver --detect
+          ./vendor/laravel/dusk/bin/chromedriver-linux64 --port=9515 &
+          sleep 2
+
+      - name: Serve the application
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 --env=dusk.local &
+          until curl -sf http://127.0.0.1:8000 > /dev/null; do sleep 1; done
+
+      - name: axe-core — WCAG 2.1 AA on the storefront
+        run: php artisan dusk --filter=AccessibilityTest
+
+      # Screenshots of whatever failed. An accessibility violation is much
+      # easier to act on beside a picture of the page it is on.
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dusk-screenshots
+          path: tests/Browser/screenshots
+          if-no-files-found: ignore
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [static-analysis, tests, security, accessibility]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Build client and SSR bundles
+        run: npm run build:ssr
+
+      - name: Export OpenAPI document
+        run: composer run openapi
+
+      - name: Upload OpenAPI document
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openapi
+          path: storage/api/openapi.json
+          if-no-files-found: error
+
+      - name: Upload built assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build
+          path: |
+            public/build
+            bootstrap/ssr
+          if-no-files-found: error

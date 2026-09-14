@@ -1,0 +1,25 @@
+meta {
+  name: Change a consent
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{base_url}}/api/v1/privacy/consents
+  body: json
+}
+
+body:json {
+  {
+    "type": "marketing",
+    "granted": false
+  }
+}
+
+docs {
+  Only `marketing` is withdrawable. Withdrawing the terms or the privacy notice
+  is not a consent change — it is a request to close the account — so posting
+  either is a validation failure rather than a silently ignored field.
+
+  Every change is a new row in an append-only log. Nothing is ever edited.
+}

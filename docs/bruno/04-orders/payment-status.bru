@@ -1,0 +1,9 @@
+meta {
+  name: Payment status
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/v1/order-groups/{{group_id}}/payment-status
+}

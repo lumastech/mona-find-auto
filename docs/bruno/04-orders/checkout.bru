@@ -1,0 +1,19 @@
+meta {
+  name: Checkout
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/checkout
+}
+
+docs {
+  Shops, fulfilment options, fees and the **full text** of every policy the
+  buyer is about to accept — the seller's own, and MonaFind's minimum refund
+  rule beside it.
+
+  An app must show these before placing an order. The order records which
+  versions were on screen, and that record is what settles a dispute two years
+  later when the seller has rewritten their policy three times.
+}

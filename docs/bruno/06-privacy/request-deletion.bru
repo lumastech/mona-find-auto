@@ -1,0 +1,29 @@
+meta {
+  name: Delete my account
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/privacy/erasure
+  body: json
+}
+
+body:json {
+  {
+    "password": "a-long-enough-password",
+    "confirm": true,
+    "reason": "Moving abroad."
+  }
+}
+
+docs {
+  Re-checks the password: it is the one irreversible action on the platform.
+
+  Schedules erasure for the end of a grace period (14 days by default) and
+  emails and texts the account holder — which is the point, because the case
+  this is really designed for is a stolen session asking for a deletion.
+
+  Financial and legal records survive without personal details attached. See
+  `docs/DATA_RETENTION.md` for exactly what is kept and why.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Cart
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/cart
+}
+
+docs {
+  Grouped by shop, because a MonaFind cart is nearly always multi-seller — a
+  buyer fixing one car buys the filter from one shop and the mirror from a
+  breaker, and pays for both at once as one order group of several orders.
+
+  The cart re-checks itself on every read. `notices` says what changed since
+  the buyer last looked and whether it stops them paying; a price rise does
+  not, because they have now been shown it.
+}

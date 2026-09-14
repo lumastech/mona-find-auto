@@ -1,0 +1,24 @@
+meta {
+  name: Ask for a price
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/quotations
+  body: json
+}
+
+body:json {
+  {
+    "product_variant_id": 1,
+    "quantity": 10,
+    "message": "Do you do a better price for ten? Collecting from Lusaka."
+  }
+}
+
+docs {
+  An accepted quote's price **wins over the listing price** and is carried into
+  the order line, so the money paid can be traced back to the offer made.
+  Quotes carry an expiry: a price given a month ago is not a price.
+}

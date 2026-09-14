@@ -1,0 +1,21 @@
+meta {
+  name: Raise a dispute
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/api/v1/orders/MF-7QK4ZP2A/disputes
+  body: multipartForm
+}
+
+body:multipart-form {
+  reason: not_as_described
+  details: The alternator is for a 2.5 and my Hilux is a 3.0. It will not fit.
+  ~evidence[]: @file(/path/to/photo.jpg)
+}
+
+docs {
+  Takes the order out of the auto-complete sweep immediately, so escrow is not
+  released while a moderator is still deciding.
+}

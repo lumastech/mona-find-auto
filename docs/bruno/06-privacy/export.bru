@@ -1,0 +1,16 @@
+meta {
+  name: Export my data
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/v1/privacy/export
+}
+
+docs {
+  Everything MonaFind holds, assembled from every module that declares any:
+  account, orders, messages, reviews, searches, consents.
+
+  Throttled to six a minute — it walks a dozen tables.
+}

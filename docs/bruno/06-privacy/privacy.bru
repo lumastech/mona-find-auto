@@ -1,0 +1,17 @@
+meta {
+  name: Where I stand
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/privacy
+}
+
+docs {
+  Current consents, any open deletion request, and anything holding one up.
+
+  `blockers` is shown **before** the person asks to be deleted, not after. An
+  order in flight should be something they find out about on the button, not
+  in an email a fortnight later saying their deletion is on hold.
+}

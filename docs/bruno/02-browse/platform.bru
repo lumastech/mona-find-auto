@@ -1,0 +1,16 @@
+meta {
+  name: Platform
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/platform
+  auth: none
+}
+
+docs {
+  Currency, timezone, API version and every setting marked safe to expose. An
+  app configures itself from this one call rather than hard-coding a currency
+  it would then have to ship an update to change.
+}

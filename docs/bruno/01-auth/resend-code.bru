@@ -1,0 +1,15 @@
+meta {
+  name: Resend code
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/phone/resend
+  body: none
+}
+
+docs {
+  Throttled to five a minute, because each one costs an SMS. A 422 with a
+  `code` error means the previous code is still in flight and still works.
+}

@@ -1,0 +1,48 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "first_name": "Chanda",
+    "last_name": "Mwale",
+    "email": "chanda@example.test",
+    "phone": "0977123456",
+    "province_id": 1,
+    "city_id": 1,
+    "street": "Cairo Road",
+    "plot_number": "42",
+    "password": "a-long-enough-password",
+    "password_confirmation": "a-long-enough-password",
+    "accept_terms": true,
+    "accept_privacy": true,
+    "accept_marketing": false,
+    "device_name": "Bruno"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("token", res.getBody().data.token);
+  }
+}
+
+docs {
+  Creates a **Pending** account and texts it a six-digit code.
+
+  `accept_terms` and `accept_privacy` are required and are recorded in the
+  append-only consent log against the current version of each document — see
+  `GET /api/v1/pages/privacy` for the version the person is agreeing to.
+  `accept_marketing` is optional and is recorded either way, because a refusal
+  that leaves no trace cannot be told apart from a question never asked.
+
+  The account cannot check out until **Verify phone** has run.
+}

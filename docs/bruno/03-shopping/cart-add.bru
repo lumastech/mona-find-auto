@@ -1,0 +1,22 @@
+meta {
+  name: Add to cart
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/cart
+  body: json
+}
+
+body:json {
+  {
+    "variant_id": 1,
+    "quantity": 1
+  }
+}
+
+docs {
+  409 `listing_not_purchasable` when the listing has come down, sold out, or
+  belongs to a shop that has been suspended since it was found.
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Category listings
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/v1/categories/brakes
+  auth: none
+}
+
+params:query {
+  ~condition: used
+  ~inspected: 1
+  ~make_id: 1
+  ~delivery: 1
+}
+
+docs {
+  Includes everything in the category's subtree — browsing "Engine" returns
+  injectors.
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Verify phone
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/phone/verify
+  body: json
+}
+
+body:json {
+  {
+    "code": "000000"
+  }
+}
+
+docs {
+  The step registration is incomplete without. A correct code marks the number
+  verified and moves the account from **Pending** to **Active**.
+
+  Locally the code is in `storage/logs/laravel.log`. Three wrong guesses burn
+  the code and a new one must be requested from **Resend code**.
+}

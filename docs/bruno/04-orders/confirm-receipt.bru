@@ -1,0 +1,19 @@
+meta {
+  name: Confirm receipt
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{base_url}}/api/v1/orders/MF-7QK4ZP2A/confirm-receipt
+  body: none
+}
+
+docs {
+  **Releases the escrow.** The money moves to the seller's payable balance the
+  moment this succeeds.
+
+  Orders that are never confirmed auto-complete after the window snapshotted
+  onto them at payment time — three days for pickup, seven for delivery by
+  default. An open dispute stops that sweep entirely.
+}

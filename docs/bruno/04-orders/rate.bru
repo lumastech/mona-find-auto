@@ -1,0 +1,23 @@
+meta {
+  name: Leave a review
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{base_url}}/api/v1/orders/MF-7QK4ZP2A/ratings
+  body: json
+}
+
+body:json {
+  {
+    "direction": "buyer_to_seller",
+    "stars": 5,
+    "body": "Right part, fitted first time, and they held it for me until Saturday."
+  }
+}
+
+docs {
+  One review per counter-party per completed order. `GET .../ratings/prompts`
+  says which are still owed.
+}

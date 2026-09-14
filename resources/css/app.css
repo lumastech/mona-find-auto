@@ -1,0 +1,311 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+|--------------------------------------------------------------------------
+| MonaFindAuto brand tokens
+|--------------------------------------------------------------------------
+|
+| Three brand colours — Navy #1F2A44, Warm Beige #E8DCC8, Soft Gold #C6A75E —
+| extended with a warm neutral ramp and a semantic set. Values are written as
+| hex rather than hsl() so every one of them is traceable back to the brand
+| sheet by eye; Tailwind v4 does not care which notation a token uses.
+|
+| ONE RULE governs the gold: it marks the things MonaFind itself vouches for
+| (inspected listing, verified seller, escrow protection) and nothing else. A
+| seller's own claim about their own stock is never gold.
+|
+| ACCESSIBILITY TRAP: Soft Gold on a light ground is 2.3:1 and fails AA at
+| every size. It is legal as a fill carrying navy text (6.2:1), or as text on
+| navy (6.2:1). Wherever gold has to BE text on a light ground, use
+| --trust-text (Bronze #7A6224 — 5.8:1 on the page ground, 4.3:1 on beige).
+|
+*/
+
+@theme inline {
+    --font-sans:
+        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    /* Headlines, prices and section titles. Never body copy. */
+    --font-display:
+        Archivo, Instrument Sans, ui-sans-serif, system-ui, sans-serif;
+
+    /*
+     * Part numbers, OEM references and payment references (MFA-1042-1). A
+     * buyer comparing 90919-01253 against the number stamped on their old
+     * coil needs the digits to line up.
+     */
+    --font-mono:
+        'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    /*
+     * The brand three, for the few places that need the literal colour rather
+     * than a role — the navy masthead, a beige section ground.
+     */
+    --color-brand-navy: var(--brand-navy);
+    --color-brand-beige: var(--brand-beige);
+    --color-brand-gold: var(--brand-gold);
+    --color-brand-navy-foreground: var(--brand-navy-foreground);
+
+    /*
+     * Semantic roles. In each pair the base is the INK and `-muted` is the
+     * soft fill behind it, so a badge is `bg-trust-muted text-trust-text`.
+     */
+    --color-trust: var(--trust);
+    --color-trust-muted: var(--trust-muted);
+    --color-trust-foreground: var(--trust-foreground);
+    --color-trust-text: var(--trust-text);
+
+    --color-success: var(--success);
+    --color-success-muted: var(--success-muted);
+    --color-success-foreground: var(--success-foreground);
+
+    --color-warning: var(--warning);
+    --color-warning-muted: var(--warning-muted);
+    --color-warning-foreground: var(--warning-foreground);
+
+    --color-danger: var(--danger);
+    --color-danger-muted: var(--danger-muted);
+    --color-danger-foreground: var(--danger-foreground);
+
+    --color-info: var(--info);
+    --color-info-muted: var(--info-muted);
+    --color-info-foreground: var(--info-foreground);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar-background);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--border, currentColor);
+    }
+}
+
+@layer utilities {
+    body,
+    html {
+        --font-sans:
+            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
+    }
+
+    /*
+     * Money, quantities and anything else that lines up in a column. A price
+     * column that does not align reads as careless on a site asking to be
+     * paid before the buyer holds the part.
+     */
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+:root {
+    --brand-navy: #1f2a44;
+    --brand-beige: #e8dcc8;
+    --brand-gold: #c6a75e;
+    --brand-navy-foreground: #ede7db;
+
+    --background: #faf7f1;
+    --foreground: #1f2a44;
+    --card: #ffffff;
+    --card-foreground: #1f2a44;
+    --popover: #ffffff;
+    --popover-foreground: #1f2a44;
+    --primary: #1f2a44;
+    --primary-foreground: #f7f3ea;
+    --secondary: #e8dcc8;
+    --secondary-foreground: #1f2a44;
+    --muted: #f3eee4;
+    --muted-foreground: #5a6275;
+    --accent: #f0e4c6;
+    --accent-foreground: #1f2a44;
+    --destructive: #b3261e;
+    --destructive-foreground: #fff7f6;
+    --border: #ded5c6;
+    --input: #d2c7b4;
+    --ring: #c6a75e;
+
+    --trust: #c6a75e;
+    --trust-muted: #f0e4c6;
+    --trust-foreground: #1f2a44;
+    --trust-text: #7a6224;
+
+    --success: #146b4a;
+    --success-muted: #dff0e6;
+    --success-foreground: #ffffff;
+
+    /*
+     * Burnt orange rather than amber on purpose: an amber warning sitting
+     * beside Soft Gold reads as a second trust mark instead of a caution.
+     */
+    --warning: #b4530e;
+    --warning-muted: #fbe7d5;
+    --warning-foreground: #ffffff;
+
+    --danger: #b3261e;
+    --danger-muted: #fadedc;
+    --danger-foreground: #ffffff;
+
+    --info: #146c7e;
+    --info-muted: #d9edf1;
+    --info-foreground: #ffffff;
+
+    --chart-1: #1f2a44;
+    --chart-2: #c6a75e;
+    --chart-3: #146b4a;
+    --chart-4: #146c7e;
+    --chart-5: #b4530e;
+
+    --radius: 0.625rem;
+
+    /* The seller portal and admin console wear the navy rail. */
+    --sidebar-background: #1f2a44;
+    --sidebar-foreground: #d8d3c6;
+    --sidebar-primary: #c6a75e;
+    --sidebar-primary-foreground: #1f2a44;
+    --sidebar-accent: #2b3757;
+    --sidebar-accent-foreground: #f5efe2;
+    --sidebar-border: #2e3a57;
+    --sidebar-ring: #c6a75e;
+    --sidebar: #1f2a44;
+}
+
+.dark {
+    --brand-navy: #1f2a44;
+    --brand-beige: #e8dcc8;
+    --brand-gold: #c6a75e;
+    --brand-navy-foreground: #ede7db;
+
+    --background: #141c2e;
+    --foreground: #ede7db;
+    --card: #1f2a44;
+    --card-foreground: #ede7db;
+    --popover: #1f2a44;
+    --popover-foreground: #ede7db;
+    --primary: #e8dcc8;
+    --primary-foreground: #1f2a44;
+    --secondary: #2e3a57;
+    --secondary-foreground: #ede7db;
+    --muted: #253253;
+    --muted-foreground: #9aa3b8;
+    --accent: #2c3350;
+    --accent-foreground: #e8dcc8;
+    --destructive: #e5645b;
+    --destructive-foreground: #1f0a08;
+    --border: #2e3a57;
+    --input: #384566;
+    --ring: #c6a75e;
+
+    /* Soft Gold is 7.4:1 on the dark ground, so here it may be text. */
+    --trust: #d4b972;
+    --trust-muted: #2c3350;
+    --trust-foreground: #141c2e;
+    --trust-text: #d4b972;
+
+    --success: #6fcf9b;
+    --success-muted: #183a2c;
+    --success-foreground: #0b1f16;
+
+    --warning: #e9a063;
+    --warning-muted: #3a2a1a;
+    --warning-foreground: #2a1a0b;
+
+    --danger: #f2a9a2;
+    --danger-muted: #3c1f1c;
+    --danger-foreground: #2a0d0b;
+
+    --info: #7fc9d8;
+    --info-muted: #15303a;
+    --info-foreground: #0a1e24;
+
+    --chart-1: #e8dcc8;
+    --chart-2: #d4b972;
+    --chart-3: #6fcf9b;
+    --chart-4: #7fc9d8;
+    --chart-5: #e9a063;
+
+    --sidebar-background: #10182a;
+    --sidebar-foreground: #c9c3b6;
+    --sidebar-primary: #d4b972;
+    --sidebar-primary-foreground: #141c2e;
+    --sidebar-accent: #1f2a44;
+    --sidebar-accent-foreground: #ede7db;
+    --sidebar-border: #263250;
+    --sidebar-ring: #c6a75e;
+    --sidebar: #10182a;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}

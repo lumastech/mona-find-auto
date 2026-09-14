@@ -1,0 +1,15 @@
+meta {
+  name: Phone status
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/v1/phone
+}
+
+docs {
+  Whether the number is proven, the masked number, and how long before another
+  code may be sent. The number is masked deliberately — an app that displayed
+  it in full would leak it to a screenshot and teach the person nothing.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "login": "chanda@example.test",
+    "password": "a-long-enough-password",
+    "device_name": "Bruno"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setEnvVar("token", res.getBody().data.token);
+  }
+}
+
+docs {
+  `login` takes either an email address or a phone number.
+
+  A staff account answers 403 `two_factor_required`: staff sign in on the web,
+  where Fortify can challenge them for a TOTP code.
+}

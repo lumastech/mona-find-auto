@@ -1,0 +1,16 @@
+meta {
+  name: Mechanics
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}/api/v1/mechanics
+  auth: none
+}
+
+params:query {
+  ~speciality_id: 1
+  ~city_id: 1
+  ~min_rating: 4
+}

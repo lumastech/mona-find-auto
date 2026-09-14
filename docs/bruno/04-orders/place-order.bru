@@ -1,0 +1,31 @@
+meta {
+  name: Place an order
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/orders
+  body: json
+}
+
+body:json {
+  {
+    "fulfilment": {
+      "1": "pickup"
+    },
+    "user_address_id": null,
+    "accept_terms": true
+  }
+}
+
+docs {
+  Takes **no money**. Payment is a separate step, so an order exists to come
+  back to even if the buyer's data runs out at the wrong moment.
+
+  Writes an order per shop inside one order group, snapshots the monetisation
+  policy and the escrow windows onto each order, records a `TermsAcceptance`
+  naming every policy version, and empties the cart.
+
+  Throttled to ten a minute — the most expensive thing a buyer can ask for.
+}

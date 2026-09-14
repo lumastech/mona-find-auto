@@ -1,0 +1,16 @@
+meta {
+  name: Privacy notice
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/v1/pages/privacy
+  auth: none
+}
+
+docs {
+  The text, **and its version number**. The version is the load-bearing part:
+  registration records consent against it, which is what makes "they agreed to
+  this text" checkable months later after staff have published a new one.
+}

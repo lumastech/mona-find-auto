@@ -1,0 +1,24 @@
+meta {
+  name: Contact a seller
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/api/v1/sellers/1/enquiries
+  body: json
+}
+
+body:json {
+  {
+    "product_id": 1,
+    "message": "Do you have this for a 2008 Hilux? I can collect today."
+  }
+}
+
+docs {
+  Lands in the same message thread the seller reads on the web — both go
+  through the `SellerEnquiryChannel` contract.
+
+  404 for a suspended shop.
+}

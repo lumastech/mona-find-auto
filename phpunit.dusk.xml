@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <!--
+        Browser tests, run with `php artisan dusk`. Unlike the Unit and Feature
+        suites these hit a real HTTP server and a real browser, so they use the
+        application's own database rather than SQLite in memory.
+    -->
+    <testsuites>
+        <testsuite name="Browser">
+            <directory>tests/Browser</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="dusk.local"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="INERTIA_SSR_ENABLED" value="false"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="PAYMENT_GATEWAY_DRIVER" value="fake"/>
+        <env name="SMS_PROVIDER" value="fake"/>
+        <env name="MAPS_PROVIDER_DRIVER" value="fake"/>
+        <env name="SCOUT_DRIVER" value="collection"/>
+    </php>
+</phpunit>

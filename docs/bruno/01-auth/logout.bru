@@ -1,0 +1,15 @@
+meta {
+  name: Logout
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/logout
+  body: none
+}
+
+docs {
+  Revokes the token that made the call, and only that one. Other devices stay
+  signed in.
+}

@@ -1,0 +1,154 @@
+###############################################################################
+# MonaFindAuto — development environment
+#
+#   cp .env.example .env
+#   docker compose up --build
+#
+#   App        http://localhost:8000
+#   Vite       http://localhost:5173
+#   Horizon    http://localhost:8000/horizon
+#   Mailpit    http://localhost:8025
+#   Meilisearch http://localhost:7700
+#
+# Every service name below matches a host in .env.example, so the defaults
+# there work without editing.
+###############################################################################
+
+name: monafindauto
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: docker/app/Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            meilisearch:
+                condition: service_healthy
+        ports:
+            - '${APP_PORT:-8000}:8000'
+        volumes:
+            - .:/var/www/html
+        environment:
+            PHP_CLI_SERVER_WORKERS: 4
+        restart: unless-stopped
+
+    # Queue workers for default, payments, media, notifications and search.
+    horizon:
+        build:
+            context: .
+            dockerfile: docker/app/Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        depends_on:
+            app:
+                condition: service_started
+        command: ['php', 'artisan', 'horizon']
+        volumes:
+            - .:/var/www/html
+        stop_signal: SIGTERM
+        restart: unless-stopped
+
+    # Escrow auto-completion, freshness checks, reconciliation.
+    scheduler:
+        build:
+            context: .
+            dockerfile: docker/app/Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        depends_on:
+            app:
+                condition: service_started
+        command: ['php', 'artisan', 'schedule:work']
+        volumes:
+            - .:/var/www/html
+        restart: unless-stopped
+
+    # Vite dev server; also serves Inertia SSR in development.
+    vite:
+        image: node:22-bookworm-slim
+        working_dir: /var/www/html
+        command: ['sh', '-c', 'npm install && npm run dev -- --host 0.0.0.0']
+        ports:
+            - '${VITE_PORT:-5173}:5173'
+            - '13714:13714'
+        volumes:
+            - .:/var/www/html
+        environment:
+            CHOKIDAR_USEPOLLING: 'true'
+            VITE_HMR_HOST: ${VITE_HMR_HOST:-localhost}
+        restart: unless-stopped
+
+    mysql:
+        image: mysql:8
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-monafind}
+            MYSQL_USER: ${DB_USERNAME:-monafind}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+        volumes:
+            - mysql-data:/var/lib/mysql
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-p${DB_ROOT_PASSWORD:-root}']
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+    redis:
+        image: redis:7-alpine
+        command: redis-server --appendonly yes
+        ports:
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - redis-data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+    meilisearch:
+        image: getmeili/meilisearch:v1.11
+        environment:
+            MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-masterKey}
+            MEILI_NO_ANALYTICS: 'true'
+            MEILI_ENV: development
+        ports:
+            - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
+        volumes:
+            - meilisearch-data:/meili_data
+        healthcheck:
+            test:
+                - CMD
+                - sh
+                - '-c'
+                - 'wget --no-verbose --spider http://localhost:7700/health || exit 1'
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        restart: unless-stopped
+
+    mailpit:
+        image: axllent/mailpit:latest
+        ports:
+            - '${FORWARD_MAILPIT_PORT:-1025}:1025'
+            - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+        restart: unless-stopped
+
+volumes:
+    mysql-data:
+    redis-data:
+    meilisearch-data:

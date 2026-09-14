@@ -1,0 +1,19 @@
+meta {
+  name: One listing
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/v1/products/1
+}
+
+docs {
+  Every card carries **two independent badges**: `condition` (what the part is)
+  and `inspection` (whether MonaFind looked at it). A brand-new part can be
+  uninspected and a car-breaker part can be inspected — never render one
+  without the other.
+
+  Run this **without** a token to see the guest view: the seller's contact
+  fields come back with their labels and their values blurred.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Keep my account
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/api/v1/privacy/erasure/1
+  body: none
+}
+
+docs {
+  Only the account holder can cancel their own request. Staff may hold one
+  while an order settles; an erasure staff could refuse would not be a right.
+}

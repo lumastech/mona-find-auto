@@ -1,0 +1,35 @@
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
+docs {
+  # MonaFindAuto API v1
+
+  Every request in this collection sends `Authorization: Bearer {{token}}` and
+  `Accept: application/json`. The few open endpoints ignore the header.
+
+  ## Getting a token
+
+  Run **01-auth / Register** or **01-auth / Login**. Both have a post-response
+  script that writes `token` into the active environment, so everything after
+  them just works.
+
+  ## The order that actually matters
+
+  Registration leaves the account **Pending**, and a Pending account cannot
+  check out. Run **01-auth / Verify phone** before anything under 04-orders,
+  or you will get a 403 that looks like a permissions bug and is not.
+
+  In a `local` environment the SMS provider is the log driver — the code is in
+  `storage/logs/laravel.log`, or in `storage/logs/integration-fakes.log` when
+  the fake provider is bound.
+}

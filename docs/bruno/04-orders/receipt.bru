@@ -1,0 +1,19 @@
+meta {
+  name: Receipt (PDF)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/v1/orders/MF-7QK4ZP2A/receipt
+}
+
+headers {
+  Accept: application/pdf
+}
+
+docs {
+  The one endpoint that does not answer in the JSON envelope. A receipt is a
+  document somebody saves, forwards to an employer or takes to a shop counter,
+  and wrapping the bytes in JSON would make it none of those.
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Notification preferences
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/v1/notifications/preferences
+}
+
+docs {
+  Mandatory events are listed but cannot be switched off — a verification code
+  nobody receives is an account nobody can get into, and a deletion notice a
+  hijacked session has opted out of is the whole problem. They are shown as
+  fixed rather than as a switch that silently ignores the tap.
+}

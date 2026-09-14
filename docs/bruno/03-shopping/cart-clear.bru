@@ -1,0 +1,15 @@
+meta {
+  name: Empty the cart
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{base_url}}/api/v1/cart
+  body: none
+}
+
+docs {
+  Answers with the now-empty cart rather than 204, so a client re-renders from
+  the response instead of guessing.
+}

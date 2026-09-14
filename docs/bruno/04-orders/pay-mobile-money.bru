@@ -1,0 +1,26 @@
+meta {
+  name: Pay by mobile money
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/order-groups/{{group_id}}/pay/mobile-money
+  body: json
+}
+
+body:json {
+  {
+    "phone": "0977123456",
+    "network": "airtel"
+  }
+}
+
+docs {
+  Server-initiated: a USSD push to the handset. There is no browser to open the
+  inline widget in, which is why this exists at all.
+
+  The response is **pending**, not paid. Poll **Payment status**; the server
+  decides by asking Lenco and by consuming the `collection.successful` webhook,
+  never by trusting the client.
+}
