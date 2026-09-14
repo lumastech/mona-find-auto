@@ -38,6 +38,15 @@ class SecurityController extends Controller
                     ->all()
                 : [],
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            /*
+             * Staff are held on this screen by EnsureStaffTwoFactor until they
+             * enrol, so the page has to explain itself. The middleware's flash
+             * message cannot carry that: it survives one redirect, and an
+             * administrator who reloads or navigates here directly never sees
+             * it. Driving the notice from account state instead keeps it up
+             * for exactly as long as it is true.
+             */
+            'mustEnrolInTwoFactor' => $request->user()->mustEnrolInTwoFactor(),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {

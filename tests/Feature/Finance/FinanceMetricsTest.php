@@ -11,6 +11,7 @@ use App\Modules\Ledger\Enums\LedgerAccountCode;
 use App\Modules\Ledger\Services\LedgerBalances;
 use App\Modules\Ledger\Services\OrderPostingService;
 use App\Modules\Orders\Models\Order;
+use Carbon\CarbonImmutable;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Support\Facades\DB;
 
@@ -53,6 +54,20 @@ function financeOrder(int $goods = 100_000, int $delivery = 0, bool $direct = fa
             'delivery_fee_ngwee' => $delivery,
             'total_ngwee' => $goods + $delivery,
         ]);
+}
+
+/**
+ * A date string as the dashboard's readers write one.
+ *
+ * `MetricWindow` reads its date strings as Lusaka dates, so a window built
+ * from UTC ones is two hours short — and between 22:00 and 24:00 UTC it is a
+ * whole day out, silently excluding anything posted since local midnight.
+ */
+function financeLocalDate(int $daysAgo = 0): string
+{
+    return CarbonImmutable::now((string) config('monafind.display_timezone'))
+        ->subDays($daysAgo)
+        ->toDateString();
 }
 
 it('reports GMV as the cash that arrived on payment recipes', function (): void {
@@ -137,7 +152,7 @@ it('fills empty buckets rather than closing up the gap', function (): void {
     $this->postings->recordPayment($order);
 
     $series = $this->metrics->series(
-        MetricWindow::fromStrings(now()->subDays(4)->toDateString(), now()->toDateString()),
+        MetricWindow::fromStrings(financeLocalDate(4), financeLocalDate()),
         MetricGranularity::Day,
     );
 
@@ -154,4 +169,38 @@ it('breaks down by seller type without losing a ngwee', function (): void {
 
     expect(array_sum(array_column($rows, 'gmvNgwee')))
         ->toBe($this->metrics->totals($window)->gmv->ngwee);
+});
+
+/**
+ * A guard on the shape of the bucketed query, not on its figures.
+ *
+ * The suite runs on SQLite, which happily matches a GROUP BY expression to an
+ * identical one in the SELECT list even when both carry a placeholder. MySQL
+ * under ONLY_FULL_GROUP_BY does not: it sees two separate `?` parameters,
+ * cannot prove the expressions are the same, and rejects the query with
+ * "'jl.posted_at' isn't in GROUP BY". So the day bucket must be grouped by the
+ * `local_date` ALIAS, and the offset expression must appear exactly once.
+ */
+it('groups the day bucket by the local_date alias so MySQL can run it', function (): void {
+    $this->postings->recordPayment(financeOrder(100_000));
+
+    DB::enableQueryLog();
+
+    $this->metrics->series(
+        MetricWindow::fromStrings(financeLocalDate(1), financeLocalDate()),
+        MetricGranularity::Day,
+    );
+
+    $bucketed = collect(DB::getQueryLog())
+        ->pluck('query')
+        ->first(fn (string $sql): bool => str_contains($sql, 'as local_date'));
+
+    DB::disableQueryLog();
+
+    expect($bucketed)->not->toBeNull();
+
+    [, $groupBy] = explode('group by', (string) $bucketed, 2);
+
+    expect($groupBy)->toContain('local_date')
+        ->and(substr_count((string) $bucketed, 'jl.posted_at, '))->toBe(1);
 });

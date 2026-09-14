@@ -42,7 +42,7 @@ const waitingSince = (iso: string | null): string =>
 <template>
     <Head title="Disputes" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 p-4">
         <header class="space-y-1">
             <h1 class="text-xl font-semibold tracking-tight">Disputes</h1>
             <p class="text-muted-foreground text-sm">

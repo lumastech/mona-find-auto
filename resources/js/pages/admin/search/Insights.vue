@@ -52,7 +52,7 @@ const formatDate = (iso: string): string =>
 <template>
     <Head title="Search insights" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 p-4">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <Heading
                 title="Search insights"

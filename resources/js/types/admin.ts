@@ -23,6 +23,68 @@ export type ConsoleShortcut = {
     description: string;
 };
 
+/** The stretch of time the console's statistics cover. */
+export type ConsoleWindow = {
+    from: string;
+    to: string;
+    label: string;
+    days: number;
+};
+
+/**
+ * How a figure is rendered. Money is integer ngwee and percent is hundredths
+ * of a percent, so nothing here has been through a float on the way over.
+ */
+export type ConsoleStatFormat = 'count' | 'money' | 'percent';
+
+/**
+ * Which way is up, decided by the module that owns the number.
+ *
+ * Revenue rising a fifth and disputes rising a fifth are both "+20%", and only
+ * one of them is good news — so the server says which and the browser colours
+ * it, rather than the browser guessing from the label.
+ */
+export type ConsoleStatDirection =
+    | 'higher_is_better'
+    | 'lower_is_better'
+    | 'neutral';
+
+/** One measurement, and what it was over the window before. */
+export type ConsoleStat = {
+    key: string;
+    label: string;
+    value: number;
+    /** Null where no comparison is meaningful — a balance is not a flow. */
+    previous: number | null;
+    /** Movement in hundredths of a percent, or null if nothing to compare. */
+    change: number | null;
+    format: ConsoleStatFormat;
+    direction: ConsoleStatDirection;
+    href: string | null;
+    hint: string | null;
+    /** One value per day of the window, zero-filled. */
+    spark: number[] | null;
+};
+
+/** One plotted line or bar. Values are integers in the chart's own format. */
+export type ConsoleChartSeries = {
+    label: string;
+    values: number[];
+    /** A literal colour: a canvas cannot read a CSS variable. */
+    colour: string;
+};
+
+export type ConsoleChart = {
+    key: string;
+    title: string;
+    description: string | null;
+    labels: string[];
+    series: ConsoleChartSeries[];
+    format: ConsoleStatFormat;
+    type: 'line' | 'bar';
+    href: string | null;
+};
+
 /** How a settings field is rendered and what it will accept. */
 export type SettingControl =
     | 'integer'

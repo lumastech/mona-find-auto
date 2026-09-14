@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { ShieldAlert } from '@lucide/vue';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
@@ -15,6 +17,7 @@ import ManageTwoFactor from '@/components/ManageTwoFactor.vue';
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    mustEnrolInTwoFactor: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
@@ -36,6 +39,22 @@ defineOptions({
     <Head title="Security settings" />
 
     <h1 class="sr-only">Security settings</h1>
+
+    <!--
+        Staff land here involuntarily: nothing else opens until they enrol.
+        Say so before the password form, which is not what they came for.
+    -->
+    <Alert v-if="props.mustEnrolInTwoFactor" variant="destructive" class="mb-6">
+        <ShieldAlert class="size-4" aria-hidden="true" />
+        <AlertTitle>Set up two-factor authentication to continue</AlertTitle>
+        <AlertDescription>
+            Your account holds a staff role, so two-factor authentication is
+            required. The staff console, the seller portal and the rest of your
+            account stay closed until you finish. Use
+            <span class="font-medium">Enable 2FA</span> below, scan the code
+            with an authenticator app, then enter the six-digit code to confirm.
+        </AlertDescription>
+    </Alert>
 
     <div class="space-y-6">
         <Heading

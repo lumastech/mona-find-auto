@@ -600,7 +600,7 @@ class FinanceMetrics
             [$expression, $bindings] = $this->localDateExpression();
 
             $query->selectRaw($expression.' as local_date', $bindings)
-                ->groupByRaw($expression, $bindings);
+                ->groupBy('local_date');
         }
 
         if ($scope !== null) {
@@ -621,16 +621,21 @@ class FinanceMetrics
      *
      * The offset is BOUND rather than interpolated. It is derived from config
      * rather than from a request, so injection is not the live risk; binding
-     * it keeps the SQL a constant string, which is what makes the expression
-     * safe to hand to both `selectRaw` and `groupByRaw` and keeps the two
-     * textually identical — a grouping that differs from its select by so
-     * much as a space is an error on some engines.
+     * it keeps the SQL a constant string that is safe to hand to `selectRaw`.
+     *
+     * That binding is also why the caller groups by the `local_date` ALIAS and
+     * never by a second copy of this expression. Laravel runs real prepared
+     * statements, so MySQL sees a `?` here rather than a number, and under
+     * ONLY_FULL_GROUP_BY it cannot prove that two expressions each holding a
+     * separate placeholder are the same one — it rejects the query as having
+     * `jl.posted_at` outside the GROUP BY. Grouping by the output name sidesteps
+     * the comparison entirely, and SQLite and PostgreSQL accept it too.
      *
      * The column is written out rather than passed in. There is exactly one
      * timestamp these figures are ever bucketed by, and naming it here keeps
      * the expression a compile-time constant — which is what lets it be
-     * handed to `selectRaw` and `groupByRaw` as the literal string both
-     * expect, with no way for a caller to put anything else in it.
+     * handed to `selectRaw` as the literal string it expects, with no way for
+     * a caller to put anything else in it.
      *
      * @return array{0: literal-string, 1: array<int, string|int>}
      */

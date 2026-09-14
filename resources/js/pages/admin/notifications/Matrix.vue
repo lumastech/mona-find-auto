@@ -75,7 +75,7 @@ const save = (): void => {
 <template>
     <Head title="Notification routing" />
 
-    <form class="space-y-6" @submit.prevent="save">
+    <form class="space-y-6 p-4" @submit.prevent="save">
         <header class="flex flex-wrap items-start justify-between gap-3">
             <Heading
                 variant="small"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
 import {
     BarElement,
     CategoryScale,
@@ -13,11 +14,16 @@ import {
 } from 'chart.js';
 import { computed } from 'vue';
 import { Bar, Line } from 'vue-chartjs';
-import { usePage } from '@inertiajs/vue3';
-import { defaultCurrency, formatMoney } from '@/lib/money';
+import { formatStatValue } from '@/lib/console';
+import { defaultCurrency } from '@/lib/money';
+import type { ConsoleStatFormat } from '@/types';
 
 /**
- * One chart of ledger figures, in the platform's own money formatting.
+ * One chart of console figures, in the platform's own formatting.
+ *
+ * Shared by the finance dashboard and the staff console's home screen, which
+ * is why it takes a `format` rather than assuming money: the same axis logic
+ * has to draw K 42,000.00 and 17 orders without two components drifting apart.
  *
  * ## Why the registration is explicit
  *
@@ -27,7 +33,7 @@ import { defaultCurrency, formatMoney } from '@/lib/money';
  * and doughnut renderers nobody opens — which matters here, because the brief
  * asks for a console usable on a low-end Android.
  *
- * ## Money never becomes a float
+ * ## Values never become floats
  *
  * Amounts arrive as integer ngwee and stay integers all the way to the axis.
  * Chart.js needs a number to place a point, so the value plotted is the ngwee
@@ -50,13 +56,16 @@ const {
     labels,
     series,
     type = 'line',
+    format = 'money',
     height = 260,
 } = defineProps<{
     /** The bucket labels along the x-axis. */
     labels: string[];
-    /** One entry per plotted line or bar. Values are integer ngwee. */
+    /** One entry per plotted line or bar. Values are integers. */
     series: { label: string; values: number[]; colour: string }[];
     type?: 'line' | 'bar';
+    /** What the values are: integer ngwee, a tally, or hundredths of a percent. */
+    format?: ConsoleStatFormat;
     height?: number;
 }>();
 
@@ -66,8 +75,9 @@ const currency = computed(
     () => page.props.platform?.currency ?? defaultCurrency,
 );
 
-const money = (ngwee: number): string =>
-    formatMoney(ngwee, currency.value, { withSymbol: true });
+/** Shared with the stat tiles, so an axis and a tile never disagree. */
+const readable = (value: number): string =>
+    formatStatValue(value, format, currency.value);
 
 const data = computed(() => ({
     labels,
@@ -110,7 +120,7 @@ const baseOptions = () => ({
                     dataset: { label?: string };
                     raw: unknown;
                 }): string =>
-                    `${item.dataset.label}: ${money(Number(item.raw ?? 0))}`,
+                    `${item.dataset.label}: ${readable(Number(item.raw ?? 0))}`,
             },
         },
     },
@@ -119,9 +129,11 @@ const baseOptions = () => ({
         y: {
             beginAtZero: true,
             ticks: {
-                /* Ticks are money too — an axis of raw ngwee counts is unreadable. */
+                /* Ticks are values too — an axis of raw ngwee counts is unreadable. */
                 callback: (value: string | number): string =>
-                    money(Number(value)),
+                    readable(Number(value)),
+                /* A tally has no halves, so never offer a tick between two. */
+                precision: format === 'count' ? 0 : undefined,
             },
         },
     },

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Support\Roles\Role;
+use Inertia\Testing\AssertableInertia as Assert;
 
 it('sends a staff account without two-factor to the setup screen', function (string $role) {
     $user = User::factory()->withRole(Role::from($role))->create();
@@ -80,4 +81,37 @@ it('keeps a staff account without two-factor out of the API as well', function (
     ])
         ->assertForbidden()
         ->assertJsonPath('error.code', 'two_factor_required');
+});
+
+it('tells an unenrolled staff account what to do on the setup screen', function () {
+    $user = User::factory()->withRole(Role::PlatformAdmin)->create();
+
+    $this->actingAs($user)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Security')
+            ->where('mustEnrolInTwoFactor', true),
+        );
+});
+
+it('drops the notice once the staff account has enrolled', function () {
+    $user = User::factory()->withTwoFactor()->withRole(Role::PlatformAdmin)->create();
+
+    $this->actingAs($user)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('mustEnrolInTwoFactor', false));
+});
+
+it('shows no notice to a buyer, who is never asked to enrol', function () {
+    $user = User::factory()->withRole(Role::Buyer)->create();
+
+    $this->actingAs($user)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('mustEnrolInTwoFactor', false));
 });

@@ -16,12 +16,14 @@ use App\Modules\Catalog\Models\VehicleModel;
 use App\Modules\Catalog\Policies\ProductPolicy;
 use App\Modules\Catalog\Policies\ReferenceDataPolicy;
 use App\Modules\Catalog\Services\CatalogConsoleCounters;
+use App\Modules\Catalog\Services\CatalogConsoleStatistics;
 use App\Modules\Catalog\Services\StorefrontNavigation;
 use App\Modules\Catalog\Support\ListingWatermarker;
 use App\Modules\Catalog\Support\Video\FfmpegVideoProcessor;
 use App\Modules\Catalog\Support\Video\NullVideoProcessor;
 use App\Modules\Sellers\Events\SellerVerificationChanged;
 use App\Support\Console\ConsoleCounters;
+use App\Support\Console\ConsoleStatistics;
 use App\Support\Modules\ModuleServiceProvider;
 use App\Support\Reference\ReferenceList;
 use App\Support\Reference\ReferenceRegistry;
@@ -73,6 +75,7 @@ class CatalogServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         $this->app->make(ConsoleCounters::class)->register(CatalogConsoleCounters::class);
+        $this->app->make(ConsoleStatistics::class)->register(CatalogConsoleStatistics::class);
 
         $this->registerReferenceLists();
 

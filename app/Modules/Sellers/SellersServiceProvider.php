@@ -9,7 +9,9 @@ use App\Modules\Sellers\Listeners\NotifySellerOfVerification;
 use App\Modules\Sellers\Models\Seller;
 use App\Modules\Sellers\Policies\SellerAccessPolicy;
 use App\Modules\Sellers\Services\SellerConsoleCounters;
+use App\Modules\Sellers\Services\SellerConsoleStatistics;
 use App\Support\Console\ConsoleCounters;
+use App\Support\Console\ConsoleStatistics;
 use App\Support\Modules\ModuleServiceProvider;
 use App\Support\Reference\ReferenceRegistry;
 use Illuminate\Support\Facades\Event;
@@ -37,6 +39,7 @@ class SellersServiceProvider extends ModuleServiceProvider
          * Admin reads them, and never reaches in here to count or to merge.
          */
         $this->app->make(ConsoleCounters::class)->register(SellerConsoleCounters::class);
+        $this->app->make(ConsoleStatistics::class)->register(SellerConsoleStatistics::class);
 
         $references = $this->app->make(ReferenceRegistry::class);
         $references->link('provinces', 'sellers', 'province_id');

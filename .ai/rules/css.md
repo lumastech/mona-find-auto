@@ -11,3 +11,8 @@ paths:
 Soft Gold on a light ground is 2.3:1 and fails AA at every size. It is legal as a fill carrying navy text, or as text on navy. Where gold has to BE text on light, use `--trust-text` (Bronze #7A6224). `--trust-*` is also the "MonaFind vouched for it" role — inspection, verification, escrow — and must not be spent on a seller's own claim or a decorative accent, or the badge stops meaning anything.
 
 Warning is burnt orange #B4530E, not amber: amber beside Soft Gold reads as a second trust mark rather than a caution. The Tailwind v4 border compat layer points at `--border`, not `--color-gray-200` — a cold grey next to the beige looks like a rendering bug.
+
+## Elevation is a token: use shadow-elev-1/2/3, never a raw shadow
+`app.css` defines `--shadow-elev-1/2/3` (Tailwind: `shadow-elev-*`) as three stacked layers — contact, mid, ambient — tinted with `--elevation-contact/mid/ambient`. Those tints are navy in light mode and near-black in dark, so the utility adapts on its own; a plain `shadow-lg` puts a cold grey shadow on the beige ground and reads as a rendering artefact.
+
+The three steps are a hierarchy, not a taste: elev-1 a quiet secondary surface, elev-2 a resting card, elev-3 the thing that needs somebody now (or elev-2 under the cursor). Add a new step here, not a one-off shadow in a `.vue`.

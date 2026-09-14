@@ -6,12 +6,14 @@ namespace App\Modules\Finance;
 
 use App\Modules\Finance\Jobs\GenerateMonthlyStatements;
 use App\Modules\Finance\Services\CommissionInvoiceDocumentService;
+use App\Modules\Finance\Services\FinanceConsoleStatistics;
 use App\Modules\Finance\Services\FinanceExportService;
 use App\Modules\Finance\Services\FinanceMetrics;
 use App\Modules\Finance\Services\SellerStatementService;
 use App\Modules\Finance\Services\StatementDocumentService;
 use App\Modules\Finance\Services\VatRateSchedule;
 use App\Modules\Orders\Contracts\VatRateProvider;
+use App\Support\Console\ConsoleStatistics;
 use App\Support\Modules\ModuleServiceProvider;
 use Illuminate\Support\Facades\Schedule;
 
@@ -51,6 +53,13 @@ class FinanceServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
+        /*
+         * The staff console's money tiles. Registered here rather than in
+         * Admin for the usual reason — these are ledger sums, and
+         * FinanceMetrics is the only thing allowed to read those.
+         */
+        $this->app->make(ConsoleStatistics::class)->register(FinanceConsoleStatistics::class);
+
         $this->registerSchedule();
     }
 

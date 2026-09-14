@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Support\Console\ConsoleCounters;
+use App\Support\Console\ConsoleStatistics;
 use App\Support\Content\ContentScreen;
 use App\Support\Reference\ReferenceMerger;
 use App\Support\Reference\ReferenceRegistry;
@@ -36,12 +37,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ContentScreen::class);
 
         /*
-         * Two registries the staff console reads and every module writes to.
-         * Both are singletons because a module contributes to them from its
+         * The registries the staff console reads and every module writes to.
+         * All are singletons because a module contributes to them from its
          * own service provider, and a fresh instance per resolution would
          * hand the console an empty one.
          */
         $this->app->singleton(ConsoleCounters::class);
+        $this->app->singleton(ConsoleStatistics::class);
         $this->app->singleton(ReferenceRegistry::class);
         $this->app->singleton(ReferenceMerger::class);
     }

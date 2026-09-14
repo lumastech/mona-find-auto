@@ -7,7 +7,7 @@ import {
     TrendingUp,
 } from '@lucide/vue';
 import { computed } from 'vue';
-import FinanceChart from '@/components/admin/FinanceChart.vue';
+import ConsoleChart from '@/components/admin/ConsoleChart.vue';
 import Heading from '@/components/Heading.vue';
 import Money from '@/components/Money.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -410,7 +410,7 @@ const positionTiles = computed(() => [
                     </p>
                 </CardHeader>
                 <CardContent>
-                    <FinanceChart :labels="labels" :series="tradeSeries" />
+                    <ConsoleChart :labels="labels" :series="tradeSeries" />
                 </CardContent>
             </Card>
 
@@ -422,7 +422,7 @@ const positionTiles = computed(() => [
                     </p>
                 </CardHeader>
                 <CardContent>
-                    <FinanceChart
+                    <ConsoleChart
                         :labels="labels"
                         :series="revenueSeries"
                         type="bar"

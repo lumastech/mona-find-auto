@@ -25,6 +25,7 @@ use App\Modules\Orders\Services\CheckoutService;
 use App\Modules\Orders\Services\DisputeService;
 use App\Modules\Orders\Services\FlatRateDeliveryFee;
 use App\Modules\Orders\Services\OrderConsoleCounters;
+use App\Modules\Orders\Services\OrderConsoleStatistics;
 use App\Modules\Orders\Services\OrderDocumentService;
 use App\Modules\Orders\Services\OrderPaymentService;
 use App\Modules\Orders\Services\OrderStateMachine;
@@ -33,6 +34,7 @@ use App\Modules\Orders\Services\SettingsVatRateProvider;
 use App\Modules\Privacy\Services\ErasureGuard;
 use App\Modules\Privacy\Support\PersonalDataRegistry;
 use App\Support\Console\ConsoleCounters;
+use App\Support\Console\ConsoleStatistics;
 use App\Support\Modules\ModuleServiceProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -100,6 +102,7 @@ class OrdersServiceProvider extends ModuleServiceProvider
     {
         $this->registerPersonalData();
         $this->app->make(ConsoleCounters::class)->register(OrderConsoleCounters::class);
+        $this->app->make(ConsoleStatistics::class)->register(OrderConsoleStatistics::class);
 
         $this->registerPolicies();
         $this->registerListeners();
