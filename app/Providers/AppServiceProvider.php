@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\ExceptionResponse;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,6 +54,36 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureRateLimiting();
         $this->configureOpenApi();
+        $this->configureErrorPages();
+    }
+
+    /**
+     * Missing, forbidden and broken pages, inside the storefront shell.
+     *
+     * A 404 never reaches a route, so it never reaches the Inertia
+     * middleware either — `withSharedData()` is what resolves that middleware
+     * anyway, and without it the error page would render with no header, no
+     * menu and no cart count. A visitor who followed a dead link to a sold
+     * listing should land somewhere they can search from.
+     *
+     * Left alone in local and testing, where the exception page itself is the
+     * more useful answer.
+     */
+    protected function configureErrorPages(): void
+    {
+        if ($this->app->environment(['local', 'testing'])) {
+            return;
+        }
+
+        Inertia::handleExceptionsUsing(function (ExceptionResponse $response): ?ExceptionResponse {
+            if (! in_array($response->statusCode(), [403, 404, 500, 503], strict: true)) {
+                return null;
+            }
+
+            return $response
+                ->render('storefront/Error', ['status' => $response->statusCode()])
+                ->withSharedData();
+        });
     }
 
     /**

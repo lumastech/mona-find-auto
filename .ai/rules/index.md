@@ -8,6 +8,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Modules/Catalog/** | .ai/rules/catalog.md |
 | app/Support/Console/** | .ai/rules/console.md |
 | app/Support/Content/** | .ai/rules/content.md |
+| resources/css/** | .ai/rules/css.md |
 | app/Modules/Finance/** | .ai/rules/finance.md |
 | app/Http/** | .ai/rules/http.md |
 | app/Modules/Identity/** | .ai/rules/identity.md |
@@ -28,5 +29,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Support/Reference/** | .ai/rules/reference.md |
 | app/Modules/Search/** | .ai/rules/search.md |
 | app/Modules/Sellers/** | .ai/rules/sellers.md |
+| app/Modules/Catalog/Services/StorefrontNavigation.php | .ai/rules/services.md |
 | app/Modules/Shopping/** | .ai/rules/shopping.md |
 | app/Modules/Orders/Support/MonetisationSnapshot.php | .ai/rules/support.md |
