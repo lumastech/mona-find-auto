@@ -183,9 +183,10 @@ export type SpecificationRow = { label: string; value: string };
 
 export type ListingPhoto = {
     id: number;
-    thumb: string;
-    card: string;
-    web: string;
+    /** Null until the queued conversion job has produced this size. */
+    thumb: string | null;
+    card: string | null;
+    web: string | null;
     alt: string;
 };
 
@@ -216,8 +217,9 @@ export type ProductDetail = ProductCard & {
 
 export type SellerListingPhoto = {
     id: number;
-    thumb: string;
-    card: string;
+    /** Null until the queued conversion job has produced this size. */
+    thumb: string | null;
+    card: string | null;
     name: string | null;
 };
 

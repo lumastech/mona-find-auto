@@ -58,7 +58,7 @@ class ListingModerationController extends Controller
         $status = ListingStatus::tryFrom($filters['status'] ?? '');
 
         $listings = Product::query()
-            ->with(['seller', 'category', 'variants', 'media'])
+            ->withPortalRelations()
             ->when(
                 $status === null,
                 fn ($query) => $query->awaitingModeration(),

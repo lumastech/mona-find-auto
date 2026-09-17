@@ -26,7 +26,7 @@ class SellerConsoleStatistics implements ProvidesConsoleStatistics
         return [
             new ConsoleStat(
                 key: 'sellers.verified',
-                label: 'Sellers verified',
+                label: 'Active verified Sellers',
                 value: $this->verifiedIn($window),
                 previous: $this->verifiedIn($window->previous()),
                 direction: ConsoleStatDirection::HigherIsBetter,

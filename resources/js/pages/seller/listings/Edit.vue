@@ -3,6 +3,7 @@ import { Form, Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ImageOff,
+    Lock,
     Send,
     Trash2,
     Undo2,
@@ -66,6 +67,16 @@ const props = withDefaults(
 );
 
 const isNew = computed(() => props.listing === null);
+
+/**
+ * A listing sitting in the moderation queue is frozen, and so is an archived
+ * one: `ProductPolicy::update()` refuses every write on it. The form and the
+ * media pickers have to say so themselves, or the seller picks a photo and
+ * gets a 403 page back instead of an upload.
+ */
+const canEdit = computed(
+    () => props.listing === null || props.listing.status.editable,
+);
 
 const form = reactive({
     name: props.listing?.name ?? '',
@@ -170,7 +181,7 @@ const videoInput = ref<HTMLInputElement | null>(null);
 const uploadPhotos = (): void => {
     const files = photoInput.value?.files;
 
-    if (!files?.length || !props.listing) {
+    if (!files?.length || !props.listing || !canEdit.value) {
         return;
     }
 
@@ -184,7 +195,7 @@ const uploadPhotos = (): void => {
 const uploadVideo = (): void => {
     const file = videoInput.value?.files?.[0];
 
-    if (!file || !props.listing) {
+    if (!file || !props.listing || !canEdit.value) {
         return;
     }
 
@@ -249,6 +260,24 @@ const uploadVideo = (): void => {
             </AlertDescription>
         </Alert>
 
+        <Alert v-if="listing && !canEdit">
+            <Lock class="size-4" aria-hidden="true" />
+            <AlertTitle>
+                {{
+                    listing.status.value === 'pending_review'
+                        ? 'Locked while MonaFind reviews it'
+                        : 'This listing can no longer be edited'
+                }}
+            </AlertTitle>
+            <AlertDescription>
+                {{ listing.status.guidance }}
+                <template v-if="listing.status.value === 'pending_review'">
+                    Withdraw it from review below to change the details or the
+                    photos.
+                </template>
+            </AlertDescription>
+        </Alert>
+
         <Form
             v-bind="
                 isNew
@@ -259,385 +288,405 @@ const uploadVideo = (): void => {
             class="space-y-6"
             @submit="showClientErrors = true"
         >
-            <Card>
-                <CardHeader>
-                    <CardTitle class="text-base">What the part is</CardTitle>
-                </CardHeader>
-                <CardContent class="grid gap-6 sm:grid-cols-2">
-                    <div class="grid gap-2 sm:col-span-2">
-                        <Label for="name">Listing name</Label>
-                        <Input
-                            id="name"
-                            v-model="form.name"
-                            name="name"
-                            required
-                            placeholder="Toyota Hilux 2KD fuel injector"
-                        />
-                        <InputError :message="errorFor('name', errors)" />
-                    </div>
-
-                    <div class="grid gap-2 sm:col-span-2">
-                        <Label for="description">Description</Label>
-                        <textarea
-                            id="description"
-                            v-model="form.description"
-                            name="description"
-                            rows="6"
-                            class="border-input bg-background rounded-md border p-3 text-sm"
-                            placeholder="What it came off, what condition it is in, what is and is not included."
-                        />
-                        <InputError
-                            :message="errorFor('description', errors)"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="category_id">Category</Label>
-                        <select
-                            id="category_id"
-                            v-model="form.category_id"
-                            name="category_id"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            <!--
+                A frozen listing is frozen field by field: the server
+                refuses the save, so nothing here should look writable.
+            -->
+            <fieldset
+                :disabled="!canEdit"
+                class="space-y-6 disabled:opacity-70"
+            >
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="text-base"
+                            >What the part is</CardTitle
                         >
-                            <option value="">Choose a category</option>
-                            <option
-                                v-for="option in categoryOptions"
-                                :key="option.id"
-                                :value="option.id"
-                                :disabled="!option.selectable"
+                    </CardHeader>
+                    <CardContent class="grid gap-6 sm:grid-cols-2">
+                        <div class="grid gap-2 sm:col-span-2">
+                            <Label for="name">Listing name</Label>
+                            <Input
+                                id="name"
+                                v-model="form.name"
+                                name="name"
+                                required
+                                placeholder="Toyota Hilux 2KD fuel injector"
+                            />
+                            <InputError :message="errorFor('name', errors)" />
+                        </div>
+
+                        <div class="grid gap-2 sm:col-span-2">
+                            <Label for="description">Description</Label>
+                            <textarea
+                                id="description"
+                                v-model="form.description"
+                                name="description"
+                                rows="6"
+                                class="border-input bg-background rounded-md border p-3 text-sm"
+                                placeholder="What it came off, what condition it is in, what is and is not included."
+                            />
+                            <InputError
+                                :message="errorFor('description', errors)"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="category_id">Category</Label>
+                            <select
+                                id="category_id"
+                                v-model="form.category_id"
+                                name="category_id"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ '— '.repeat(option.depth) }}{{ option.name }}
-                            </option>
-                        </select>
-                        <InputError
-                            :message="errorFor('category_id', errors)"
-                        />
-                    </div>
+                                <option value="">Choose a category</option>
+                                <option
+                                    v-for="option in categoryOptions"
+                                    :key="option.id"
+                                    :value="option.id"
+                                    :disabled="!option.selectable"
+                                >
+                                    {{ '— '.repeat(option.depth)
+                                    }}{{ option.name }}
+                                </option>
+                            </select>
+                            <InputError
+                                :message="errorFor('category_id', errors)"
+                            />
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="condition">Condition</Label>
-                        <select
-                            id="condition"
-                            v-model="form.condition"
-                            name="condition"
-                            :disabled="conditionLocked !== null"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-70"
-                        >
-                            <option
-                                v-for="option in conditions"
-                                :key="option.value"
-                                :value="option.value"
+                        <div class="grid gap-2">
+                            <Label for="condition">Condition</Label>
+                            <select
+                                id="condition"
+                                v-model="form.condition"
+                                name="condition"
+                                :disabled="conditionLocked !== null"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-70"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                        <p
-                            v-if="conditionLocked"
-                            class="text-muted-foreground text-xs"
-                        >
-                            Everything you sell comes off a scrapped vehicle, so
-                            your listings carry the Car Breaker badge.
-                        </p>
-                        <InputError :message="errorFor('condition', errors)" />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="sourcing">Part source</Label>
-                        <select
-                            id="sourcing"
-                            v-model="form.sourcing"
-                            name="sourcing"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option
-                                v-for="option in sourcingOptions"
-                                :key="option.value"
-                                :value="option.value"
+                                <option
+                                    v-for="option in conditions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                            <p
+                                v-if="conditionLocked"
+                                class="text-muted-foreground text-xs"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
+                                Everything you sell comes off a scrapped
+                                vehicle, so your listings carry the Car Breaker
+                                badge.
+                            </p>
+                            <InputError
+                                :message="errorFor('condition', errors)"
+                            />
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="part_number">Part number</Label>
-                        <Input
-                            id="part_number"
-                            v-model="form.part_number"
-                            name="part_number"
-                            placeholder="23670-0L050"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="oem_number">OEM number</Label>
-                        <Input
-                            id="oem_number"
-                            v-model="form.oem_number"
-                            name="oem_number"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle class="text-base">What it fits</CardTitle>
-                </CardHeader>
-                <CardContent class="grid gap-6 sm:grid-cols-2">
-                    <div class="grid gap-2">
-                        <Label for="make_id">Make</Label>
-                        <select
-                            id="make_id"
-                            v-model="form.make_id"
-                            name="make_id"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option value="">Fits any make</option>
-                            <option
-                                v-for="make in makes"
-                                :key="make.id"
-                                :value="make.id"
+                        <div class="grid gap-2">
+                            <Label for="sourcing">Part source</Label>
+                            <select
+                                id="sourcing"
+                                v-model="form.sourcing"
+                                name="sourcing"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ make.name }}
-                            </option>
-                        </select>
-                    </div>
+                                <option
+                                    v-for="option in sourcingOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="vehicle_model_id">Model</Label>
-                        <select
-                            id="vehicle_model_id"
-                            v-model="form.vehicle_model_id"
-                            name="vehicle_model_id"
-                            :disabled="!form.make_id"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-70"
-                        >
-                            <option value="">Any model</option>
-                            <option
-                                v-for="model in modelsForMake"
-                                :key="model.id"
-                                :value="model.id"
+                        <div class="grid gap-2">
+                            <Label for="part_number">Part number</Label>
+                            <Input
+                                id="part_number"
+                                v-model="form.part_number"
+                                name="part_number"
+                                placeholder="23670-0L050"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="oem_number">OEM number</Label>
+                            <Input
+                                id="oem_number"
+                                v-model="form.oem_number"
+                                name="oem_number"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="text-base">What it fits</CardTitle>
+                    </CardHeader>
+                    <CardContent class="grid gap-6 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="make_id">Make</Label>
+                            <select
+                                id="make_id"
+                                v-model="form.make_id"
+                                name="make_id"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ model.name }}
-                            </option>
-                        </select>
-                    </div>
+                                <option value="">Fits any make</option>
+                                <option
+                                    v-for="make in makes"
+                                    :key="make.id"
+                                    :value="make.id"
+                                >
+                                    {{ make.name }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="year_from">First year</Label>
-                        <Input
-                            id="year_from"
-                            v-model="form.year_from"
-                            name="year_from"
-                            type="number"
-                            min="1950"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="year_to">Last year</Label>
-                        <Input
-                            id="year_to"
-                            v-model="form.year_to"
-                            name="year_to"
-                            type="number"
-                            min="1950"
-                        />
-                        <InputError :message="errorFor('year_to', errors)" />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="engine_size_cc">Engine size (cc)</Label>
-                        <Input
-                            id="engine_size_cc"
-                            v-model="form.engine_size_cc"
-                            name="engine_size_cc"
-                            type="number"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="engine_code">Engine code</Label>
-                        <Input
-                            id="engine_code"
-                            v-model="form.engine_code"
-                            name="engine_code"
-                            placeholder="2KD-FTV"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="fuel_type">Fuel type</Label>
-                        <select
-                            id="fuel_type"
-                            v-model="form.fuel_type"
-                            name="fuel_type"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option value="">Not specified</option>
-                            <option
-                                v-for="option in fuelTypes"
-                                :key="option.value"
-                                :value="option.value"
+                        <div class="grid gap-2">
+                            <Label for="vehicle_model_id">Model</Label>
+                            <select
+                                id="vehicle_model_id"
+                                v-model="form.vehicle_model_id"
+                                name="vehicle_model_id"
+                                :disabled="!form.make_id"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-70"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
+                                <option value="">Any model</option>
+                                <option
+                                    v-for="model in modelsForMake"
+                                    :key="model.id"
+                                    :value="model.id"
+                                >
+                                    {{ model.name }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="transmission">Transmission</Label>
-                        <select
-                            id="transmission"
-                            v-model="form.transmission"
-                            name="transmission"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option value="">Not specified</option>
-                            <option
-                                v-for="option in transmissions"
-                                :key="option.value"
-                                :value="option.value"
+                        <div class="grid gap-2">
+                            <Label for="year_from">First year</Label>
+                            <Input
+                                id="year_from"
+                                v-model="form.year_from"
+                                name="year_from"
+                                type="number"
+                                min="1950"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="year_to">Last year</Label>
+                            <Input
+                                id="year_to"
+                                v-model="form.year_to"
+                                name="year_to"
+                                type="number"
+                                min="1950"
+                            />
+                            <InputError
+                                :message="errorFor('year_to', errors)"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="engine_size_cc">Engine size (cc)</Label>
+                            <Input
+                                id="engine_size_cc"
+                                v-model="form.engine_size_cc"
+                                name="engine_size_cc"
+                                type="number"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="engine_code">Engine code</Label>
+                            <Input
+                                id="engine_code"
+                                v-model="form.engine_code"
+                                name="engine_code"
+                                placeholder="2KD-FTV"
+                            />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="fuel_type">Fuel type</Label>
+                            <select
+                                id="fuel_type"
+                                v-model="form.fuel_type"
+                                name="fuel_type"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
+                                <option value="">Not specified</option>
+                                <option
+                                    v-for="option in fuelTypes"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="drive_type">Drive type</Label>
-                        <select
-                            id="drive_type"
-                            v-model="form.drive_type"
-                            name="drive_type"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option value="">Not specified</option>
-                            <option
-                                v-for="option in driveTypes"
-                                :key="option.value"
-                                :value="option.value"
+                        <div class="grid gap-2">
+                            <Label for="transmission">Transmission</Label>
+                            <select
+                                id="transmission"
+                                v-model="form.transmission"
+                                name="transmission"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
+                                <option value="">Not specified</option>
+                                <option
+                                    v-for="option in transmissions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="body_type">Body type</Label>
-                        <select
-                            id="body_type"
-                            v-model="form.body_type"
-                            name="body_type"
-                            class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        >
-                            <option value="">Not specified</option>
-                            <option
-                                v-for="option in bodyTypes"
-                                :key="option.value"
-                                :value="option.value"
+                        <div class="grid gap-2">
+                            <Label for="drive_type">Drive type</Label>
+                            <select
+                                id="drive_type"
+                                v-model="form.drive_type"
+                                name="drive_type"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
-                                {{ option.label }}
-                            </option>
-                        </select>
-                    </div>
+                                <option value="">Not specified</option>
+                                <option
+                                    v-for="option in driveTypes"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2">
-                        <Label for="trim">Trim or variant</Label>
-                        <Input id="trim" v-model="form.trim" name="trim" />
-                    </div>
+                        <div class="grid gap-2">
+                            <Label for="body_type">Body type</Label>
+                            <select
+                                id="body_type"
+                                v-model="form.body_type"
+                                name="body_type"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
+                            >
+                                <option value="">Not specified</option>
+                                <option
+                                    v-for="option in bodyTypes"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <div class="grid gap-2 sm:col-span-2">
-                        <Label for="chassis_compatibility">
-                            Chassis or VIN codes this fits
-                        </Label>
-                        <textarea
-                            id="chassis_compatibility"
-                            v-model="form.chassis_compatibility"
-                            name="chassis_compatibility"
-                            rows="2"
-                            class="border-input bg-background rounded-md border p-3 text-sm"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                        <div class="grid gap-2">
+                            <Label for="trim">Trim or variant</Label>
+                            <Input id="trim" v-model="form.trim" name="trim" />
+                        </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle class="text-base">Price and stock</CardTitle>
-                </CardHeader>
-                <CardContent class="grid gap-6 sm:grid-cols-2">
-                    <div class="grid gap-2">
-                        <Label for="price">Price (K, VAT included)</Label>
-                        <Input
-                            id="price"
-                            v-model="form.price"
-                            name="price"
-                            inputmode="decimal"
-                            placeholder="1250.00"
-                        />
-                        <p class="text-muted-foreground text-xs">
-                            The price a buyer pays. VAT on the goods is yours to
-                            account for; MonaFind invoices only its commission.
-                        </p>
-                        <InputError :message="errorFor('price', errors)" />
-                    </div>
+                        <div class="grid gap-2 sm:col-span-2">
+                            <Label for="chassis_compatibility">
+                                Chassis or VIN codes this fits
+                            </Label>
+                            <textarea
+                                id="chassis_compatibility"
+                                v-model="form.chassis_compatibility"
+                                name="chassis_compatibility"
+                                rows="2"
+                                class="border-input bg-background rounded-md border p-3 text-sm"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    <div class="grid gap-2">
-                        <Label for="quantity">Quantity in stock</Label>
-                        <Input
-                            id="quantity"
-                            v-model="form.quantity"
-                            name="quantity"
-                            type="number"
-                            min="0"
-                        />
-                        <InputError :message="errorFor('quantity', errors)" />
-                    </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle class="text-base">Price and stock</CardTitle>
+                    </CardHeader>
+                    <CardContent class="grid gap-6 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="price">Price (K, VAT included)</Label>
+                            <Input
+                                id="price"
+                                v-model="form.price"
+                                name="price"
+                                inputmode="decimal"
+                                placeholder="1250.00"
+                            />
+                            <p class="text-muted-foreground text-xs">
+                                The price a buyer pays. VAT on the goods is
+                                yours to account for; MonaFind invoices only its
+                                commission.
+                            </p>
+                            <InputError :message="errorFor('price', errors)" />
+                        </div>
 
-                    <div class="grid gap-2 sm:col-span-2">
-                        <Label for="warranty_text">Warranty</Label>
-                        <Input
-                            id="warranty_text"
-                            v-model="form.warranty_text"
-                            name="warranty_text"
-                            placeholder="30-day warranty on fitment."
-                        />
-                    </div>
+                        <div class="grid gap-2">
+                            <Label for="quantity">Quantity in stock</Label>
+                            <Input
+                                id="quantity"
+                                v-model="form.quantity"
+                                name="quantity"
+                                type="number"
+                                min="0"
+                            />
+                            <InputError
+                                :message="errorFor('quantity', errors)"
+                            />
+                        </div>
 
-                    <div class="flex items-center gap-2 sm:col-span-2">
-                        <Checkbox
-                            id="delivery_available"
-                            v-model="form.delivery_available"
-                            name="delivery_available"
-                        />
-                        <Label for="delivery_available">
-                            I can deliver this part
-                        </Label>
-                    </div>
-                </CardContent>
-            </Card>
+                        <div class="grid gap-2 sm:col-span-2">
+                            <Label for="warranty_text">Warranty</Label>
+                            <Input
+                                id="warranty_text"
+                                v-model="form.warranty_text"
+                                name="warranty_text"
+                                placeholder="30-day warranty on fitment."
+                            />
+                        </div>
 
-            <div class="flex flex-wrap items-center gap-3">
-                <Button type="submit" :disabled="processing">
-                    <Spinner v-if="processing" />
-                    {{ isNew ? 'Save draft' : 'Save changes' }}
-                </Button>
+                        <div class="flex items-center gap-2 sm:col-span-2">
+                            <Checkbox
+                                id="delivery_available"
+                                v-model="form.delivery_available"
+                                name="delivery_available"
+                            />
+                            <Label for="delivery_available">
+                                I can deliver this part
+                            </Label>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                <p
-                    v-if="showClientErrors && !canSubmitForm"
-                    class="text-destructive text-sm"
-                >
-                    Fix the fields marked above.
-                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <Button type="submit" :disabled="processing">
+                        <Spinner v-if="processing" />
+                        {{ isNew ? 'Save draft' : 'Save changes' }}
+                    </Button>
 
-                <Button variant="ghost" as-child>
-                    <Link :href="sellerListings.index().url"
-                        >Back to listings</Link
+                    <p
+                        v-if="showClientErrors && !canSubmitForm"
+                        class="text-destructive text-sm"
                     >
-                </Button>
-            </div>
+                        Fix the fields marked above.
+                    </p>
+
+                    <Button variant="ghost" as-child>
+                        <Link :href="sellerListings.index().url"
+                            >Back to listings</Link
+                        >
+                    </Button>
+                </div>
+            </fieldset>
         </Form>
 
         <template v-if="listing">
@@ -662,11 +711,20 @@ const uploadVideo = (): void => {
                             class="relative"
                         >
                             <img
+                                v-if="photo.thumb"
                                 :src="photo.thumb"
                                 :alt="photo.name ?? listing.name"
                                 class="size-24 rounded border object-cover"
                             />
+                            <div
+                                v-else
+                                class="bg-muted text-muted-foreground flex size-24 items-center justify-center rounded border"
+                                :title="`${photo.name ?? 'Photo'} is still being processed`"
+                            >
+                                <ImageOff class="size-5" aria-hidden="true" />
+                            </div>
                             <Link
+                                v-if="canEdit"
                                 :href="
                                     sellerListings.photos.destroy([
                                         listing.slug,
@@ -697,6 +755,7 @@ const uploadVideo = (): void => {
 
                     <div class="flex flex-wrap items-center gap-3">
                         <input
+                            v-if="canEdit"
                             ref="photoInput"
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
@@ -704,6 +763,10 @@ const uploadVideo = (): void => {
                             class="text-sm"
                             @change="uploadPhotos"
                         />
+                        <p v-else class="text-muted-foreground text-sm">
+                            Photos are locked while the listing is
+                            {{ listing.status.label.toLowerCase() }}.
+                        </p>
                     </div>
                 </CardContent>
             </Card>
@@ -732,6 +795,7 @@ const uploadVideo = (): void => {
                             — still processing
                         </span>
                         <Link
+                            v-if="canEdit"
                             :href="sellerListings.video.destroy(listing.slug)"
                             method="delete"
                             as="button"
@@ -743,6 +807,7 @@ const uploadVideo = (): void => {
                     </p>
 
                     <input
+                        v-if="canEdit"
                         ref="videoInput"
                         type="file"
                         accept="video/mp4,video/quicktime,video/webm"

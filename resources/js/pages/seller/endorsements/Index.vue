@@ -31,7 +31,7 @@ const openRevoke = ref<number | null>(null);
 <template>
     <Head title="Endorsements" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-4 sm:px-6 lg:px-8">
         <Heading
             title="Endorsements"
             description="Mechanics who have asked your shop to vouch for them. Your business name appears on the profile of anyone you endorse."

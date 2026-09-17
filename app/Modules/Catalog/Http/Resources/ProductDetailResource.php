@@ -121,16 +121,16 @@ class ProductDetailResource extends JsonResource
      * The gallery. Only conversions are served — the seller's original stays
      * on the private disk, EXIF and all.
      *
-     * @return array<int, array{id: int, thumb: string, card: string, web: string, alt: string}>
+     * @return array<int, array{id: int, thumb: string|null, card: string|null, web: string|null, alt: string}>
      */
     private function photos(): array
     {
         return $this->getMedia(Product::PHOTOS_COLLECTION)
             ->map(fn (Media $media, int $index): array => [
                 'id' => $media->getKey(),
-                'thumb' => $media->getUrl('thumb'),
-                'card' => $media->getUrl('card'),
-                'web' => $media->getUrl('web'),
+                'thumb' => Product::displayConversionUrl($media, 'thumb'),
+                'card' => Product::displayConversionUrl($media, 'card'),
+                'web' => Product::displayConversionUrl($media, 'web'),
                 'alt' => sprintf('%s, photo %d', $this->name, $index + 1),
             ])
             ->values()

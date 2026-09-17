@@ -86,7 +86,7 @@ const filterBy = (status: string | null): void => {
 <template>
     <Head title="Quote requests" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-4 sm:px-6 lg:px-8">
         <Heading
             title="Quote requests"
             :description="

@@ -238,11 +238,11 @@ const changed = (entry: AuditEntry): boolean =>
                         class="mt-2 grid gap-2 sm:grid-cols-2"
                     >
                         <pre
-                            class="bg-muted overflow-x-auto rounded-md p-2 text-xs"
-                            >{{ JSON.stringify(entry.before, null, 2) }}</pre>
+                            class="bg-red-100  overflow-x-auto rounded-md p-2 text-xs text-red-700 dark:text-red-400"
+                            ><b>Before:</b> <br />{{ JSON.stringify(entry.before, null, 2) }}</pre>
                         <pre
-                            class="bg-muted overflow-x-auto rounded-md p-2 text-xs"
-                            >{{ JSON.stringify(entry.after, null, 2) }}</pre>
+                            class="bg-green-100 overflow-x-auto rounded-md p-2 text-xs text-green-700 dark:text-green-400"
+                            ><b>After:</b> <br />{{ JSON.stringify(entry.after, null, 2) }}</pre>
                     </div>
                 </div>
             </CardContent>

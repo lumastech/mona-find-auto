@@ -48,7 +48,7 @@ const submit = (): void => {
 <template>
     <Head title="Delivery and collection" />
 
-    <div class="max-w-2xl space-y-6">
+    <div class="max-w-2xl space-y-6 px-4 sm:px-6 lg:px-8">
         <header class="space-y-1">
             <h1 class="text-xl font-semibold tracking-tight">
                 Delivery and collection

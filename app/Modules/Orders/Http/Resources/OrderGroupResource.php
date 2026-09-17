@@ -41,7 +41,10 @@ class OrderGroupResource extends JsonResource
             'placed_at' => $group->placed_at?->toIso8601String(),
             'paid_at' => $group->paid_at?->toIso8601String(),
 
-            'orders' => OrderResource::collection($this->whenLoaded('orders')),
+            'orders' => $this->whenLoaded(
+                'orders',
+                fn (): array => OrderResource::collection($group->orders)->resolve($request),
+            ),
         ];
     }
 }

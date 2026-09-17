@@ -284,3 +284,25 @@ it('saves a shop\'s fulfilment settings and refuses a shop that offers nothing',
 
     expect($this->seller->fresh()->delivery_fee_ngwee->ngwee)->toBe(7_550);
 });
+
+/*
+ * A nested JsonResource collection left unresolved reaches Inertia as an
+ * object: Inertia calls toResponse() on any resource it finds in the props,
+ * which applies the `data` wrapper, so `order.items` arrives as
+ * `{ data: [...] }` and the page's v-for walks the wrapper instead of the
+ * lines. Two items, because a wrapped collection still has a length of one.
+ */
+it('sends the order pages a plain list of items, not a wrapped collection', function (): void {
+    $order = webOrder();
+    OrderItem::factory()->forVariant($this->variant, 2)->create(['order_id' => $order->getKey()]);
+
+    $this->actingAs($this->buyer)
+        ->get(route('orders.show', $order))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('order.items', 2));
+
+    $this->actingAs($this->sellerUser)
+        ->get(route('seller.orders.show', $order))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('order.items', 2));
+});

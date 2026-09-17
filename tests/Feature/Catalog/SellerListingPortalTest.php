@@ -64,6 +64,23 @@ it('shows a seller their own listings and nobody else\'s', function (): void {
     expect($theirs->seller_id)->not->toBe($this->seller->id);
 });
 
+/*
+ * The single-row case passes either way: Builder::hydrate() only arms
+ * preventLazyLoading on a result of more than one row, so the missing
+ * `seller` eager load hid behind a one-listing fixture and 500d on the
+ * second listing.
+ */
+it('renders a page of listings without lazy loading the shop behind them', function (): void {
+    Product::factory()->count(2)->create(['seller_id' => $this->seller->id]);
+
+    $this->actingAs($this->seller->user)
+        ->get(route('seller.listings.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('listings.data', 2)
+            ->where('listings.data.0.condition.locked', false));
+});
+
 it('creates a listing as a draft and sends the seller to its form', function (): void {
     $this->actingAs($this->seller->user)
         ->post(route('seller.listings.store'), listingForm($this->category))
@@ -179,6 +196,34 @@ it('lets a seller upload photos up to the limit', function (): void {
         ->assertRedirect();
 
     expect($product->refresh()->getMedia(Product::PHOTOS_COLLECTION))->toHaveCount(2);
+});
+
+/*
+ * A listing in the queue is frozen, so the portal has to say so before the
+ * seller acts on it: a photo picker that posts into a 403 page is worse than
+ * no photo picker at all.
+ */
+it('refuses photo uploads while the listing sits in the moderation queue', function (): void {
+    $product = Product::factory()->pendingReview()->create(['seller_id' => $this->seller->id]);
+
+    $this->actingAs($this->seller->user)
+        ->post(route('seller.listings.photos.store', $product), [
+            'photos' => [UploadedFile::fake()->image('one.jpg')],
+        ])
+        ->assertForbidden();
+
+    expect($product->refresh()->getMedia(Product::PHOTOS_COLLECTION))->toBeEmpty();
+});
+
+it('tells the edit page that a queued listing cannot be edited', function (): void {
+    $product = Product::factory()->pendingReview()->create(['seller_id' => $this->seller->id]);
+
+    $this->actingAs($this->seller->user)
+        ->get(route('seller.listings.edit', $product))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('listing.status.value', ListingStatus::PendingReview->value)
+            ->where('listing.status.editable', false));
 });
 
 it('archives rather than deletes, so order history keeps its listing', function (): void {

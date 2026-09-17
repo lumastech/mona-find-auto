@@ -73,7 +73,7 @@ class ProductCardResource extends JsonResource
 
             'fitment' => $this->fitmentSummary(),
             'delivery_available' => $this->delivery_available,
-            'thumbnail_url' => $this->getFirstMediaUrl(Product::PHOTOS_COLLECTION, 'card') ?: null,
+            'thumbnail_url' => $this->thumbnailUrl(),
 
             'seller' => $this->whenLoaded('seller', fn (): array => [
                 'id' => $this->seller->id,
@@ -118,5 +118,18 @@ class ProductCardResource extends JsonResource
             'variant' => $level->badgeVariant(),
             'available' => $level->isAvailable(),
         ];
+    }
+
+    /**
+     * The card image, or the smaller conversion if the card one has not been
+     * generated yet. Null when the listing has no photo the browser may see.
+     */
+    private function thumbnailUrl(): ?string
+    {
+        $media = $this->getFirstMedia(Product::PHOTOS_COLLECTION);
+
+        return $media === null
+            ? null
+            : Product::displayConversionUrl($media, 'card');
     }
 }

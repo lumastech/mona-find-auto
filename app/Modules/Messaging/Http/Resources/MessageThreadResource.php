@@ -59,8 +59,9 @@ class MessageThreadResource extends JsonResource
              */
             'allows_contact_details' => $this->allowsContactDetails(),
 
-            'messages' => MessageResource::collection(
-                $this->whenLoaded('messages'),
+            'messages' => $this->whenLoaded(
+                'messages',
+                fn (): array => MessageResource::collection($this->messages)->resolve($request),
             ),
 
             'created_at' => $this->created_at?->toIso8601String(),

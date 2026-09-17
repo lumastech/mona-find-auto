@@ -10,8 +10,10 @@ use App\Modules\Catalog\Models\Make;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\VehicleModel;
 use App\Modules\Catalog\Services\CategoryTree;
+use App\Modules\Catalog\Services\ListingMediaService;
 use App\Modules\Sellers\Models\Seller;
 use App\Support\Roles\Role;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -166,6 +168,30 @@ it('shows a moderator the buyer view beside the seller fields', function (): voi
             ->has('breadcrumb')
             ->where('canModerate', true)
             ->where('canInspect', true));
+});
+
+/*
+ * The card conversion is queued. A moderator opening the screen before the
+ * worker has run must still be shown the photo — the thumbnail strip rendered
+ * while the main image did not, which looks like a listing with no photos.
+ */
+it('gives a moderator a photo to look at before the queued conversions run', function (): void {
+    asModerator();
+    $product = Product::factory()->pendingReview()->create();
+
+    app(ListingMediaService::class)->addPhotos($product, [
+        UploadedFile::fake()->image('injector.jpg', 1600, 1200),
+    ]);
+
+    $media = $product->refresh()->getFirstMedia(Product::PHOTOS_COLLECTION);
+    $media->generated_conversions = ['thumb' => true];
+    $media->save();
+
+    $this->get(route('admin.listings.show', $product))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('listing.photos.0.card', $media->getUrl('thumb'))
+            ->where('listing.photos.0.thumb', $media->getUrl('thumb')));
 });
 
 it('lets a platform admin curate the reference lists', function (): void {

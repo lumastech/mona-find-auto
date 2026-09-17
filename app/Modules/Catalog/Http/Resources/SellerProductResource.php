@@ -94,15 +94,15 @@ class SellerProductResource extends JsonResource
     }
 
     /**
-     * @return array<int, array{id: int, thumb: string, card: string, name: string|null}>
+     * @return array<int, array{id: int, thumb: string|null, card: string|null, name: string|null}>
      */
     private function photos(): array
     {
         return $this->getMedia(Product::PHOTOS_COLLECTION)
             ->map(static fn (Media $media): array => [
                 'id' => $media->getKey(),
-                'thumb' => $media->getUrl('thumb'),
-                'card' => $media->getUrl('card'),
+                'thumb' => Product::displayConversionUrl($media, 'thumb'),
+                'card' => Product::displayConversionUrl($media, 'card'),
                 'name' => $media->file_name,
             ])
             ->values()

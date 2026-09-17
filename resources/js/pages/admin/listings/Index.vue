@@ -183,7 +183,7 @@ watch(search, () => {
                         class="bg-muted size-20 shrink-0 overflow-hidden rounded border"
                     >
                         <img
-                            v-if="listing.photos[0]"
+                            v-if="listing.photos[0]?.thumb"
                             :src="listing.photos[0].thumb"
                             :alt="listing.name"
                             class="size-full object-cover"

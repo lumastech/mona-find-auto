@@ -60,7 +60,7 @@ class ProductController extends Controller
 
         $listings = Product::query()
             ->where('seller_id', $seller->getKey())
-            ->with(['category', 'variants', 'media'])
+            ->withPortalRelations()
             ->when(
                 ListingStatus::tryFrom($filters['status'] ?? ''),
                 fn ($query, ListingStatus $status) => $query->where('status', $status),
@@ -120,7 +120,7 @@ class ProductController extends Controller
         $seller = $this->currentSeller($request);
         Gate::authorize('view', $product);
 
-        $product->load(['variants', 'category', 'media', 'reviewEvents.actor']);
+        $product->load(['seller', 'variants', 'category', 'media', 'reviewEvents.actor']);
 
         return Inertia::render('seller/listings/Edit', [
             'listing' => SellerProductResource::make($product)->resolve($request),

@@ -57,7 +57,10 @@ class OrderResource extends JsonResource
                 'longitude' => $order->seller->longitude,
             ],
 
-            'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'items' => $this->whenLoaded(
+                'items',
+                fn (): array => OrderItemResource::collection($order->items)->resolve($request),
+            ),
 
             'items_total_ngwee' => $order->items_total_ngwee->ngwee,
             'delivery_fee_ngwee' => $order->delivery_fee_ngwee->ngwee,

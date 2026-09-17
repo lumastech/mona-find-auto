@@ -27,8 +27,10 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Providers/AppServiceProvider.php | .ai/rules/providers.md |
 | app/Modules/Ratings/** | .ai/rules/ratings.md |
 | app/Support/Reference/** | .ai/rules/reference.md |
+| app/Modules/*/Http/Resources/** | .ai/rules/resources.md |
 | app/Modules/Search/** | .ai/rules/search.md |
 | app/Modules/Sellers/** | .ai/rules/sellers.md |
 | app/Modules/Catalog/Services/StorefrontNavigation.php | .ai/rules/services.md |
 | app/Modules/Shopping/** | .ai/rules/shopping.md |
 | app/Modules/Orders/Support/MonetisationSnapshot.php | .ai/rules/support.md |
+| tests/** | .ai/rules/tests.md |

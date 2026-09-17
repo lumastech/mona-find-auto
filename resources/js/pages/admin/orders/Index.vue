@@ -43,7 +43,7 @@ const apply = (changes: Record<string, string | null>): void => {
 <template>
     <Head title="Orders" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-4 sm:px-6 lg:px-8">
         <header class="space-y-1">
             <h1 class="text-xl font-semibold tracking-tight">Orders</h1>
             <p class="text-muted-foreground text-sm">

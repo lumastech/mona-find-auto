@@ -160,3 +160,42 @@ it('keeps only the most recent video', function (): void {
 
     expect($this->product->refresh()->getMedia(Product::VIDEO_COLLECTION))->toHaveCount(1);
 });
+
+/*
+ * Only `thumb` is nonQueued. Between the upload and the worker running,
+ * `card` and `web` name files that are not on disk yet — and a resource that
+ * hands those URLs to the browser renders a broken image on the moderation
+ * screen, which reads as "the seller uploaded nothing".
+ */
+it('degrades a display url to the largest conversion that has been generated', function (): void {
+    $this->media->addPhotos($this->product, [UploadedFile::fake()->image('injector.jpg', 1600, 1200)]);
+
+    $media = $this->product->refresh()->getFirstMedia(Product::PHOTOS_COLLECTION);
+    $media->generated_conversions = ['thumb' => true];
+    $media->save();
+
+    expect(Product::displayConversionUrl($media, 'web'))->toBe($media->getUrl('thumb'))
+        ->and(Product::displayConversionUrl($media, 'card'))->toBe($media->getUrl('thumb'))
+        ->and(Product::displayConversionUrl($media, 'thumb'))->toBe($media->getUrl('thumb'));
+});
+
+it('has no display url for a photo whose conversions have all yet to run', function (): void {
+    $this->media->addPhotos($this->product, [UploadedFile::fake()->image('injector.jpg', 1600, 1200)]);
+
+    $media = $this->product->refresh()->getFirstMedia(Product::PHOTOS_COLLECTION);
+    $media->generated_conversions = [];
+    $media->save();
+
+    expect(Product::displayConversionUrl($media, 'card'))->toBeNull()
+        ->and(Product::displayConversionUrl($media, 'thumb'))->toBeNull();
+});
+
+it('never serves the private original in place of a missing conversion', function (): void {
+    $this->media->addPhotos($this->product, [UploadedFile::fake()->image('injector.jpg', 1600, 1200)]);
+
+    $media = $this->product->refresh()->getFirstMedia(Product::PHOTOS_COLLECTION);
+    $media->generated_conversions = [];
+    $media->save();
+
+    expect(Product::displayConversionUrl($media, 'web'))->not->toBe($media->getUrl());
+});

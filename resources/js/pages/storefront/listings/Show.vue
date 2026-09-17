@@ -5,6 +5,7 @@ import {
     ChevronRight,
     FileText,
     Flag,
+    ImageOff,
     PackageCheck,
     Truck,
 } from '@lucide/vue';
@@ -133,7 +134,7 @@ const isSubscribed = computed(
                     class="bg-muted aspect-4/3 w-full overflow-hidden rounded-lg border"
                 >
                     <img
-                        v-if="activePhoto"
+                        v-if="activePhoto?.web"
                         :src="activePhoto.web"
                         :alt="activePhoto.alt"
                         class="size-full object-contain"
@@ -161,11 +162,18 @@ const isSubscribed = computed(
                         @click="activePhoto = photo"
                     >
                         <img
+                            v-if="photo.thumb"
                             :src="photo.thumb"
                             :alt="photo.alt"
                             loading="lazy"
                             class="size-full object-cover"
                         />
+                        <span
+                            v-else
+                            class="text-muted-foreground flex size-full items-center justify-center"
+                        >
+                            <ImageOff class="size-4" aria-hidden="true" />
+                        </span>
                     </button>
                 </div>
 

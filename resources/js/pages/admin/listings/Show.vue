@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { BadgeCheck, Check, ScanEye, X } from '@lucide/vue';
+import { BadgeCheck, Check, ImageOff, ScanEye, X } from '@lucide/vue';
 import { ref } from 'vue';
 import ListingBadges from '@/components/catalog/ListingBadges.vue';
 import ListingStatusBadge from '@/components/catalog/ListingStatusBadge.vue';
@@ -87,11 +87,18 @@ const rejecting = ref(false);
                         class="bg-muted aspect-4/3 w-full overflow-hidden rounded-lg border"
                     >
                         <img
-                            v-if="activePhoto"
+                            v-if="activePhoto?.card"
                             :src="activePhoto.card"
-                            :alt="activePhoto.name ?? listing.name"
+                            :alt="activePhoto?.name ?? listing.name"
                             class="size-full object-contain"
                         />
+                        <p
+                            v-else-if="activePhoto"
+                            class="text-muted-foreground flex size-full items-center justify-center p-4 text-center text-sm"
+                        >
+                            This photo is still being processed. Moderate it
+                            once the full size is ready.
+                        </p>
                         <p
                             v-else
                             class="text-muted-foreground flex size-full items-center justify-center text-sm"
@@ -113,10 +120,17 @@ const rejecting = ref(false);
                             @click="activePhoto = photo"
                         >
                             <img
+                                v-if="photo.thumb"
                                 :src="photo.thumb"
                                 :alt="photo.name ?? ''"
                                 class="size-full object-cover"
                             />
+                            <span
+                                v-else
+                                class="text-muted-foreground flex size-full items-center justify-center"
+                            >
+                                <ImageOff class="size-4" aria-hidden="true" />
+                            </span>
                         </button>
                     </div>
 

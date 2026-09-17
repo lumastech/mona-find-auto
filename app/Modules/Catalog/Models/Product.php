@@ -331,6 +331,35 @@ class Product extends Model implements HasMedia
     }
 
     /**
+     * The URL for a display conversion, degraded to the next smallest one
+     * that actually exists.
+     *
+     * Only `thumb` is nonQueued; `card` and `web` are produced by a queued
+     * job, so between the upload and the worker picking it up
+     * `getUrl('card')` names a file that is not there yet and the browser
+     * renders a broken image. Serving a smaller conversion is the honest
+     * degradation — the original never leaves the private disk, and a
+     * 320px photo is a photo. Null only if nothing has been generated at all.
+     */
+    public static function displayConversionUrl(Media $media, string $conversion): ?string
+    {
+        $candidates = self::DISPLAY_CONVERSIONS;
+        $requested = array_search($conversion, $candidates, true);
+
+        if ($requested === false) {
+            return null;
+        }
+
+        foreach (array_reverse(array_slice($candidates, 0, $requested + 1)) as $candidate) {
+            if ($media->hasGeneratedConversion($candidate)) {
+                return $media->getUrl($candidate);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Where the watermark sits on a listing photo.
      *
      * Bottom-right, inset, and translucent: far enough in that a crop cannot
@@ -488,6 +517,32 @@ class Product extends Model implements HasMedia
             /* Read by fitmentSummary(), not by the resource directly. */
             'make',
             'vehicleModel',
+        ]);
+    }
+
+    /**
+     * Everything a PORTAL row reads, eager-loaded.
+     *
+     * `SellerProductResource` is the seller's and the moderator's view of the
+     * same listing, and it reads `seller.type` to decide whether the condition
+     * badge is locked — a relation that is easy to miss on a screen that is
+     * already scoped to one shop.
+     *
+     * The miss survives a test, too: `Builder::hydrate()` only arms
+     * `preventLazyLoading` on a result of more than one row, so a seller with
+     * a single listing renders fine and the second one 500s. Paginated portal
+     * queries go through this scope so the list has one definition.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeWithPortalRelations(Builder $query): void
+    {
+        $query->with([
+            /* Read for the condition badge's locked flag, not rendered itself. */
+            'seller',
+            'category',
+            'variants',
+            'media',
         ]);
     }
 

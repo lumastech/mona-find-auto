@@ -285,3 +285,52 @@ it('records which side each participant is on', function (): void {
     expect($this->threads->roleFor($thread, $this->buyer))->toBe(ThreadRole::Buyer)
         ->and($this->threads->roleFor($thread, $this->seller->user))->toBe(ThreadRole::Seller);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Payload shape
+|--------------------------------------------------------------------------
+|
+| A nested JsonResource collection left unresolved reaches Inertia as an
+| object — Inertia calls toResponse() on any resource it finds in the props
+| and that applies the `data` wrapper — so the page receives
+| `messages: { data: [...] }` where it expects a list. The thread panel then
+| renders no bubbles and MessageBubble dies reaching for `attachments` on
+| the wrapper, which is a blank screen, not a degraded one. Two messages,
+| because a wrapped collection still has a length of one.
+|
+*/
+
+it('sends the thread pages a plain list of messages, not a wrapped collection', function (): void {
+    $thread = listingThread();
+    $this->threads->post($thread, $this->buyer, 'Is this still available?');
+    $this->threads->post($thread->fresh()->load('participants'), $this->seller->user, 'Yes, come through.');
+
+    $this->actingAs($this->seller->user)
+        ->get(route('seller.messages.show', $thread))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('seller/messages/Show')
+            ->has('thread.messages', 2)
+            ->has('thread.messages.0.attachments'));
+
+    $this->actingAs($this->buyer)
+        ->get(route('threads.show', $thread))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('thread.messages', 2)
+            ->has('thread.messages.0.attachments'));
+});
+
+it('leaves messages out of an inbox listing rather than sending an empty list', function (): void {
+    $thread = listingThread();
+    $this->threads->post($thread, $this->buyer, 'Is this still available?');
+
+    $this->actingAs($this->seller->user)
+        ->get(route('seller.messages.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('seller/messages/Index')
+            ->has('threads.data', 1)
+            ->missing('threads.data.0.messages'));
+});
