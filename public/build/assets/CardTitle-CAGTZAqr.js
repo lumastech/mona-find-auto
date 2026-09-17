@@ -1,0 +1,1 @@
+import{Jt as e,cr as t,dr as n,et as r,lt as i,tn as a}from"./dist-CJuyjMaV.js";import{t as o}from"./utils-CnTRepNJ.js";var s=i({__name:`CardTitle`,props:{class:{type:[Boolean,null,String,Object,Array]}},setup(i){let s=i;return(i,c)=>(e(),r(`h3`,{"data-slot":`card-title`,class:n(t(o)(`leading-none font-semibold`,s.class))},[a(i.$slots,`default`)],2))}});export{s as t};

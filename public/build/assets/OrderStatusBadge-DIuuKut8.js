@@ -1,0 +1,1 @@
+import{Dn as e,Jt as t,Q as n,cr as r,lt as i,mr as a,ot as o}from"./dist-CJuyjMaV.js";import{k as s}from"./app-DtiPhmDB.js";var c=i({__name:`OrderStatusBadge`,props:{order:{}},setup(i){return(c,l)=>(t(),n(r(s),{variant:i.order.status_variant},{default:e(()=>[o(a(i.order.status_label),1)]),_:1},8,[`variant`]))}});export{c as t};
