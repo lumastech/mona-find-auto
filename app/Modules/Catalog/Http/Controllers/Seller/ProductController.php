@@ -163,12 +163,17 @@ class ProductController extends Controller
     /**
      * Retire a listing. Order history still points at it, so it is archived
      * rather than deleted.
+     *
+     * Archiving twice (a double click, or a stale tab) is treated as done
+     * rather than as an illegal transition.
      */
     public function destroy(Request $request, Product $product): RedirectResponse
     {
         Gate::authorize('archive', $product);
 
-        $this->moderation->archive($product, $this->currentUser($request));
+        if ($product->status !== ListingStatus::Archived) {
+            $this->moderation->archive($product, $this->currentUser($request));
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Listing archived.')]);
 

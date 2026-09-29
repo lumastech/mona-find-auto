@@ -971,7 +971,11 @@ const uploadVideo = (): void => {
                             </Link>
                         </Button>
 
-                        <Button variant="ghost" as-child>
+                        <Button
+                            v-if="listing.status.value !== 'archived'"
+                            variant="ghost"
+                            as-child
+                        >
                             <Link
                                 :href="sellerListings.destroy(listing.slug)"
                                 method="delete"

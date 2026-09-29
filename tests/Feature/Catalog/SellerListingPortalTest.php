@@ -256,3 +256,17 @@ it('archives rather than deletes, so order history keeps its listing', function 
     expect($product->refresh()->status)->toBe(ListingStatus::Archived)
         ->and(Product::query()->whereKey($product->id)->exists())->toBeTrue();
 });
+
+it('treats archiving an already archived listing as done rather than crashing', function (): void {
+    $product = Product::factory()->create(['seller_id' => $this->seller->id]);
+
+    $this->actingAs($this->seller->user)
+        ->delete(route('seller.listings.destroy', $product))
+        ->assertRedirect(route('seller.listings.index'));
+
+    $this->actingAs($this->seller->user)
+        ->delete(route('seller.listings.destroy', $product))
+        ->assertRedirect(route('seller.listings.index'));
+
+    expect($product->refresh()->status)->toBe(ListingStatus::Archived);
+});
