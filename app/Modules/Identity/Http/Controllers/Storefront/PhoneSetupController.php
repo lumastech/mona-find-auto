@@ -12,6 +12,7 @@ use App\Modules\Identity\Rules\ZambianMobileNumber;
 use App\Modules\Identity\Services\LocationDirectory;
 use App\Modules\Identity\Services\OtpService;
 use App\Modules\Identity\Support\AccountFieldRules;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,9 @@ use Inertia\Response;
  *
  * Those give us a name and an email address and nothing else, so this is
  * where the phone number and address the platform actually needs are
- * collected, followed by the usual SMS verification.
+ * collected, followed by the usual SMS verification — or, while there is no
+ * SMS gateway, by nothing at all: the number is stored unverified and the
+ * account carries on (Support\PhoneVerificationGate).
  */
 class PhoneSetupController extends Controller
 {
@@ -43,7 +46,13 @@ class PhoneSetupController extends Controller
         }
 
         if ($user->phone !== null) {
-            return to_route('phone.verify');
+            /*
+             * Nothing left to ask for: the number is there, and with no
+             * gateway there is no code to send to it.
+             */
+            return PhoneVerificationGate::enabled()
+                ? to_route('phone.verify')
+                : to_route('dashboard');
         }
 
         return Inertia::render('auth/CompleteProfile', [
@@ -76,6 +85,12 @@ class PhoneSetupController extends Controller
         $user->forceFill([...$validated, 'phone_verified_at' => null])->save();
 
         audit($user, 'user.phone_set', $user, null, ['phone' => $phone]);
+
+        if (PhoneVerificationGate::disabled()) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile saved.')]);
+
+            return to_route('dashboard');
+        }
 
         try {
             $this->otp->issue($phone, OtpPurpose::PhoneVerification, $user, $request->ip());

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Identity\Events\AccountRegistered;
 use App\Modules\Identity\Http\Middleware\EnsurePhoneIsVerified;
 use App\Modules\Identity\Http\Responses\RegisterResponse;
+use App\Modules\Identity\Listeners\ActivateOnEmailVerification;
 use App\Modules\Identity\Listeners\SendWelcomeNotification;
 use App\Modules\Identity\Models\City;
 use App\Modules\Identity\Models\Province;
@@ -21,6 +22,7 @@ use App\Support\Modules\ModuleServiceProvider;
 use App\Support\Reference\ReferenceList;
 use App\Support\Reference\ReferenceRegistry;
 use App\Support\Roles\Role;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -57,6 +59,13 @@ class IdentityServiceProvider extends ModuleServiceProvider
 
         /* One welcome, whether the account arrived by form, API or Google. */
         Event::listen(AccountRegistered::class, SendWelcomeNotification::class);
+
+        /*
+         * While there is no SMS gateway, a proven email address is what takes
+         * an account out of Pending. The listener stands down on its own once
+         * PhoneVerificationGate is switched on.
+         */
+        Event::listen(Verified::class, ActivateOnEmailVerification::class);
     }
 
     private function registerPolicies(): void

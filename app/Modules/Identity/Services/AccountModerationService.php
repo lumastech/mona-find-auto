@@ -66,18 +66,23 @@ class AccountModerationService
     }
 
     /**
-     * Move an account out of Pending once its phone number is verified.
+     * Move an account out of Pending once a contact detail is verified.
+     *
+     * Which detail depends on the deployment — the phone number where there
+     * is an SMS gateway, the email address otherwise (see
+     * Support\PhoneVerificationGate) — so the caller says which one it
+     * proved, and the status reason the account holder is shown says so too.
      *
      * A suspended or closed account never quietly becomes active this way —
      * only staff can undo those.
      */
-    public function activateAfterVerification(User $user): User
+    public function activateAfterVerification(User $user, string $reason = 'Phone number verified.'): User
     {
         if ($user->status !== AccountStatus::Pending) {
             return $user;
         }
 
-        return $this->transitionTo($user, AccountStatus::Active, 'Phone number verified.', null, 'user.activated');
+        return $this->transitionTo($user, AccountStatus::Active, $reason, null, 'user.activated');
     }
 
     /**

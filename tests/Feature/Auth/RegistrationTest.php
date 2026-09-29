@@ -17,7 +17,9 @@ test('new users can register', function () {
     $response = $this->post(route('register.store'), registrationPayload());
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('phone.verify', absolute: false));
+
+    /* No SMS gateway yet, so the email notice is what registration hands over to. */
+    $response->assertRedirect(route('verification.notice', absolute: false));
 
     expect(Auth::user()->email)->toBe('chanda@example.test')
         ->and(Auth::user()->name)->toBe('Chanda Mwale');

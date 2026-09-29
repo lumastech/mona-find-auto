@@ -9,6 +9,7 @@ use App\Modules\Identity\Enums\AccountStatus;
 use App\Modules\Identity\Enums\SocialProvider;
 use App\Modules\Identity\Events\AccountRegistered;
 use App\Modules\Identity\Models\SocialAccount;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use App\Support\Roles\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,9 +24,16 @@ use Laravel\Socialite\Contracts\User as SocialiteUser;
  * 2. the provider's verified email matches an account — link and sign in;
  * 3. neither — create a Pending account and send the person to finish it.
  *
- * A social login never produces a fully active account on its own: MonaFind
- * needs a verified Zambian phone number before anyone can buy or sell, so a
- * new social account lands in Pending exactly like a form registration does.
+ * A social login never produces a fully active account on its own where
+ * there is an SMS gateway: MonaFind needs a verified Zambian phone number
+ * before anyone can buy or sell, so a new social account lands in Pending
+ * exactly like a form registration does.
+ *
+ * With no gateway a verified email address is what activates an account, and
+ * the provider has just proved this one — there is no Verified event coming
+ * for ActivateOnEmailVerification to hear, so `register()` settles the status
+ * itself. The account still owes us a phone number and an address, which the
+ * phone-setup screen collects.
  */
 class SocialAuthService
 {
@@ -88,7 +96,8 @@ class SocialAuthService
      * Create an account from an OAuth profile.
      *
      * There is no phone number and no address yet — the person is sent to
-     * finish their profile, and only then does the account become active.
+     * finish their profile. See statusForNewAccount() for what the account is
+     * allowed to do in the meantime.
      */
     private function register(SocialProvider $provider, SocialiteUser $oauthUser): User
     {
@@ -103,11 +112,13 @@ class SocialAuthService
                 'password' => Str::password(32),
             ]);
 
+            /* The provider already proved the address, so we do not ask again. */
+            $emailVerifiedAt = $oauthUser->getEmail() === null ? null : now();
+
             $user->forceFill([
-                'status' => AccountStatus::Pending,
+                'status' => $this->statusForNewAccount($emailVerifiedAt !== null),
                 'status_changed_at' => now(),
-                /* The provider already proved the address, so we do not ask again. */
-                'email_verified_at' => $oauthUser->getEmail() === null ? null : now(),
+                'email_verified_at' => $emailVerifiedAt,
             ])->save();
 
             $user->assignRole(Role::Buyer->value);
@@ -123,6 +134,22 @@ class SocialAuthService
 
             return $user;
         });
+    }
+
+    /**
+     * What a brand-new social account starts as.
+     *
+     * Pending while phone verification is the gate. Where it is off, the
+     * proven email address IS the gate, so an account arriving with one is
+     * active immediately — waiting would leave it Pending with nothing left
+     * to prove. Facebook does not always release an address; one that has
+     * none still waits.
+     */
+    private function statusForNewAccount(bool $emailVerified): AccountStatus
+    {
+        return $emailVerified && PhoneVerificationGate::disabled()
+            ? AccountStatus::Active
+            : AccountStatus::Pending;
     }
 
     private function refreshLink(SocialAccount $account, SocialiteUser $oauthUser): void

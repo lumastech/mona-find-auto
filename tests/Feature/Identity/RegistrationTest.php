@@ -13,6 +13,15 @@ use App\Modules\Identity\Models\PhoneVerification;
 use App\Support\Roles\Role;
 use Inertia\Testing\AssertableInertia;
 
+/*
+ * Registration WITH an SMS gateway. What happens without one — no code, and
+ * the email address as the thing that activates the account — is
+ * PhoneVerificationDisabledTest.
+ */
+beforeEach(function () {
+    withPhoneVerification();
+});
+
 it('creates a pending buyer account and texts it a verification code', function () {
     $sms = app(SmsProvider::class);
 

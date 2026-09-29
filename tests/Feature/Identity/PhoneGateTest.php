@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Route;
  */
 
 beforeEach(function () {
+    /* The middleware only blocks where a number CAN be proven. */
+    withPhoneVerification();
+
     Route::middleware(['web', 'auth', 'phone.verified'])
         ->get('/__test__/needs-phone', fn () => response('ok'))
         ->name('test.needs-phone');

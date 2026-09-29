@@ -89,7 +89,7 @@ trait ListingFieldRules
     {
         return [
             'name.min' => 'Say what the part is — a buyer searching for it needs more than a word.',
-            'description.min' => 'Describe the part so a buyer knows what they are getting.',
+            'description.min' => 'Describe the part in at least 20 characters so a buyer knows what they are getting.',
             'category_id.required' => 'Choose the category this part belongs in.',
             'year_to.gte' => 'The last year a part fits cannot be before the first.',
             'price.gt' => 'A listing needs a price above zero.',

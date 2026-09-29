@@ -11,6 +11,15 @@ use App\Modules\Identity\Exceptions\OtpThrottled;
 use App\Modules\Identity\Models\PhoneVerification;
 use App\Modules\Identity\Services\OtpService;
 
+/*
+ * Every case here is about the code itself, so they run with the SMS gateway
+ * switched on — MonaFind has none yet (PhoneVerificationGate), and these
+ * flows have to keep working for when it does.
+ */
+beforeEach(function () {
+    withPhoneVerification();
+});
+
 it('activates a pending account once the code is right', function () {
     $user = User::factory()->pending()->create(['phone' => '+260977123456']);
     PhoneVerification::factory()->for($user)->create(['phone' => $user->phone]);

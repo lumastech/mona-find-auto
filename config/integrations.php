@@ -23,6 +23,22 @@ return [
         'driver' => env('SMS_PROVIDER', 'log'),
 
         /*
+         * Whether accounts have to prove their phone number over SMS.
+         *
+         * Off until the Zamtel gateway is live. A code nobody can receive
+         * would strand every new account in Pending forever, so with this
+         * off registration skips the OTP and a verified EMAIL address is
+         * what activates an account instead (see
+         * App\Modules\Identity\Listeners\ActivateOnEmailVerification).
+         * Password reset over SMS closes for the same reason.
+         *
+         * Numbers are still collected and still validated as Zambian mobile
+         * numbers, so nothing has to be asked for again when this is turned
+         * back on. Grep PhoneVerificationGate for everything it moves.
+         */
+        'phone_verification' => (bool) env('PHONE_VERIFICATION_ENABLED', false),
+
+        /*
          * The alphanumeric sender ID every message goes out under unless the
          * caller names another. Zamtel registers these per account; an
          * unregistered ID is silently replaced by the network with a short

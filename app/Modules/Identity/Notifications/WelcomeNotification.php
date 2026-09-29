@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Identity\Notifications;
 
 use App\Models\User;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use App\Modules\Messaging\Concerns\DeliversByPreference;
 use App\Modules\Messaging\Contracts\PlatformNotification;
 use App\Modules\Messaging\Enums\NotificationEvent;
@@ -16,11 +17,11 @@ use Illuminate\Notifications\Notification;
 /**
  * The one message a new account gets, and what is still outstanding on it.
  *
- * Not a marketing welcome. Registration on MonaFind leaves two things
- * half-done — a phone number that has been typed but not proven, and an email
- * address that has been typed but not clicked — and an account with either
- * outstanding cannot do what the person registered to do. So this says which
- * of the two are still open and links to them.
+ * Not a marketing welcome. Registration on MonaFind leaves things half-done
+ * — an email address that has been typed but not clicked, and, where there
+ * is an SMS gateway, a phone number that has been typed but not proven — and
+ * an account with either outstanding cannot do what the person registered to
+ * do. So this says which of them are still open and links to them.
  *
  * The verification CODE is not here: that is OtpNotification, by text, and
  * keeping the two apart is what stops a code living in an email inbox.
@@ -75,7 +76,8 @@ class WelcomeNotification extends Notification implements PlatformNotification, 
     {
         $lines = [];
 
-        if ($this->user->phone_verified_at === null) {
+        /* Only where a code can actually be sent — see PhoneVerificationGate. */
+        if (PhoneVerificationGate::enabled() && $this->user->phone_verified_at === null) {
             $lines[] = 'Verify your phone number to buy — we text you a six-digit code.';
         }
 

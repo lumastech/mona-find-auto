@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import CaptchaField from '@/components/CaptchaField.vue';
 import AddressFields from '@/components/identity/AddressFields.vue';
 import SocialAuthButtons from '@/components/identity/SocialAuthButtons.vue';
@@ -15,12 +15,25 @@ import { login } from '@/routes';
 import { show as showPage } from '@/routes/pages';
 import { store } from '@/routes/register';
 import type { ProvinceOption, SocialProviderOption } from '@/types';
+import { computed } from 'vue';
 
 defineProps<{
     passwordRules: string;
     socialProviders: SocialProviderOption[];
     provinces: ProvinceOption[];
 }>();
+
+const page = usePage();
+
+/*
+ * The number is collected either way; what we promise to do with it depends
+ * on whether there is an SMS gateway to send a code through.
+ */
+const phoneHint = computed(() =>
+    page.props.platform.phoneVerification
+        ? 'We text a code here to confirm it is yours.'
+        : 'We use this to reach you about your orders.',
+);
 
 defineOptions({
     layout: {
@@ -96,7 +109,7 @@ defineOptions({
                     placeholder="0977 123 456"
                 />
                 <p class="text-muted-foreground text-xs">
-                    We text a code here to confirm it is yours.
+                    {{ phoneHint }}
                 </p>
                 <InputError :message="errors.phone" />
             </div>

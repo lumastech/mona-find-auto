@@ -139,7 +139,7 @@ const clientErrors = computed<Record<string, string>>(() => {
 
     if (form.description.trim().length < 20) {
         errors.description =
-            'Describe the part so a buyer knows what they are getting.';
+            'Describe the part in at least 20 characters so a buyer knows what they are getting.';
     }
 
     if (!form.category_id) {
@@ -325,6 +325,10 @@ const uploadVideo = (): void => {
                                 class="border-input bg-background rounded-md border p-3 text-sm"
                                 placeholder="What it came off, what condition it is in, what is and is not included."
                             />
+                            <p class="text-muted-foreground text-xs">
+                                {{ form.description.trim().length }} / 20
+                                characters minimum
+                            </p>
                             <InputError
                                 :message="errorFor('description', errors)"
                             />
@@ -371,6 +375,16 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <!--
+                                A disabled select is never submitted, so the
+                                locked value travels in a hidden field.
+                            -->
+                            <input
+                                v-if="conditionLocked"
+                                type="hidden"
+                                name="condition"
+                                :value="conditionLocked"
+                            />
                             <p
                                 v-if="conditionLocked"
                                 class="text-muted-foreground text-xs"

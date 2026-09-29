@@ -12,6 +12,7 @@ use App\Modules\Identity\Exceptions\OtpThrottled;
 use App\Modules\Identity\Rules\ZambianMobileNumber;
 use App\Modules\Identity\Services\OtpService;
 use App\Modules\Identity\Services\SessionRegistry;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use App\Modules\Identity\Support\ZambianPhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 /**
  * Resetting a password over SMS.
@@ -29,6 +31,11 @@ use Inertia\Response;
  * Whether or not the number belongs to an account, the response is the same:
  * confirming which numbers are registered would turn this into a way to
  * enumerate the platform's users.
+ *
+ * The whole flow is closed until there is an SMS gateway to carry the code
+ * (Support\PhoneVerificationGate). A reset screen that silently sends
+ * nothing is worse than no screen: it looks like the account is unreachable,
+ * and the email reset beside it does work.
  */
 class SmsPasswordResetController extends Controller
 {
@@ -59,8 +66,22 @@ class SmsPasswordResetController extends Controller
         return $parsed->e164();
     }
 
+    /**
+     * Refuse the whole flow while a code cannot be delivered.
+     */
+    private function ensureSmsIsAvailable(): void
+    {
+        abort_if(
+            PhoneVerificationGate::disabled(),
+            HttpResponse::HTTP_NOT_FOUND,
+            'Password reset by SMS is not available yet.',
+        );
+    }
+
     public function show(Request $request): Response
     {
+        $this->ensureSmsIsAvailable();
+
         return Inertia::render('auth/ForgotPasswordSms', [
             'status' => $request->session()->get('status'),
             'phone' => $request->session()->get('reset_phone'),
@@ -72,6 +93,8 @@ class SmsPasswordResetController extends Controller
      */
     public function send(Request $request): RedirectResponse
     {
+        $this->ensureSmsIsAvailable();
+
         $validated = $request->validate([
             'phone' => ['required', 'string', new ZambianMobileNumber],
         ]);
@@ -94,6 +117,8 @@ class SmsPasswordResetController extends Controller
 
     public function edit(Request $request): Response
     {
+        $this->ensureSmsIsAvailable();
+
         return Inertia::render('auth/ResetPasswordSms', [
             'phone' => $request->session()->get('reset_phone'),
             'status' => $request->session()->get('status'),
@@ -105,6 +130,8 @@ class SmsPasswordResetController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $this->ensureSmsIsAvailable();
+
         $validated = $request->validate([
             'phone' => ['required', 'string', new ZambianMobileNumber],
             'code' => ['required', 'string', 'digits:6'],

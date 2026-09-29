@@ -7,6 +7,15 @@ export type Platform = {
     currency: CurrencyConfig;
     /** IANA name used when rendering timestamps, e.g. "Africa/Lusaka". */
     timezone: string;
+    /**
+     * Whether phone numbers are proven over SMS on this deployment.
+     *
+     * False until the SMS gateway is live: numbers are still collected, no
+     * code is sent, and an account is activated by its email address
+     * instead. Anything that depends on a delivered code — "Reset by SMS",
+     * the "not confirmed yet" note — renders as nothing while it is false.
+     */
+    phoneVerification: boolean;
 };
 
 /**

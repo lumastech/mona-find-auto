@@ -10,6 +10,9 @@ use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
 beforeEach(function () {
+    /* These cases are about the OTP-gated flow; see PhoneVerificationDisabledTest for the other. */
+    withPhoneVerification();
+
     config([
         'services.google.client_id' => 'google-client-id',
         'services.google.client_secret' => 'google-client-secret',

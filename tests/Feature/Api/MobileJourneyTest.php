@@ -27,6 +27,9 @@ use Laravel\Sanctum\Sanctum;
  */
 beforeEach(function (): void {
     $this->seed(SettingsSeeder::class);
+
+    /* The first journey below is the SMS one, so the gateway is on here. */
+    withPhoneVerification();
 });
 
 describe('registration can now be finished from the app', function (): void {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Http\Responses;
 
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,10 @@ use Symfony\Component\HttpFoundation\Response;
  * immediate bounce to the email verification notice — and the SMS code that
  * was just sent would never get a screen. Registration sends the code, so
  * registration hands over to the screen that consumes it.
+ *
+ * With no SMS gateway there is no code, and the email notice is exactly
+ * where the account should go: confirming the address is what activates it
+ * (see Listeners\ActivateOnEmailVerification).
  */
 class RegisterResponse implements RegisterResponseContract
 {
@@ -29,6 +34,8 @@ class RegisterResponse implements RegisterResponseContract
             return new JsonResponse('', Response::HTTP_CREATED);
         }
 
-        return redirect()->route('phone.verify');
+        return redirect()->route(
+            PhoneVerificationGate::enabled() ? 'phone.verify' : 'verification.notice',
+        );
     }
 }

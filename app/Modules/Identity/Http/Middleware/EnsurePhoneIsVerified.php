@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Identity\Http\Middleware;
 
 use App\Models\User;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,6 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
  * onboarding, mechanic endorsement.
  *
  * Browsing never needs this; being contactable about an order does.
+ *
+ * With no SMS gateway there is nothing an account could do to satisfy this,
+ * so it steps aside rather than turning every guarded action into a dead
+ * end — see Support\PhoneVerificationGate.
  */
 class EnsurePhoneIsVerified
 {
@@ -22,6 +27,10 @@ class EnsurePhoneIsVerified
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (PhoneVerificationGate::disabled()) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if ($user instanceof User && $user->hasVerifiedPhone()) {

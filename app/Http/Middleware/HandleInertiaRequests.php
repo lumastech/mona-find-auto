@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Modules\Admin\Services\AnnouncementBoard;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use App\Support\Captcha\CaptchaGuard;
 use App\Support\Roles\Role;
 use App\Support\Settings\SettingsRepository;
@@ -56,6 +57,14 @@ class HandleInertiaRequests extends Middleware
             'platform' => [
                 'currency' => config('monafind.currency'),
                 'timezone' => config('monafind.display_timezone'),
+                /*
+                 * Whether this deployment can prove a phone number over SMS.
+                 * False hides the affordances that depend on a delivered
+                 * code — "Reset by SMS", the unconfirmed-number note — so a
+                 * screen never offers something the gateway cannot do. See
+                 * App\Modules\Identity\Support\PhoneVerificationGate.
+                 */
+                'phoneVerification' => PhoneVerificationGate::enabled(),
             ],
             /*
              * The public site key and the list of forms that carry a

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -15,6 +15,7 @@ import { request as requestSms } from '@/routes/password/sms';
 import PasskeyVerify from '@/components/PasskeyVerify.vue';
 import SocialAuthButtons from '@/components/identity/SocialAuthButtons.vue';
 import type { SocialProviderOption } from '@/types';
+import { computed } from 'vue';
 
 defineOptions({
     layout: {
@@ -28,6 +29,16 @@ defineProps<{
     canResetPassword: boolean;
     socialProviders: SocialProviderOption[];
 }>();
+
+const page = usePage();
+
+/*
+ * The SMS reset is only offered where a code can be delivered; until the
+ * gateway is live, the email reset above it is the only one that works.
+ */
+const canResetBySms = computed(
+    () => page.props.platform.phoneVerification === true,
+);
 </script>
 
 <template>
@@ -100,7 +111,7 @@ defineProps<{
                 </Label>
 
                 <TextLink
-                    v-if="canResetPassword"
+                    v-if="canResetPassword && canResetBySms"
                     :href="requestSms()"
                     class="text-sm"
                     :tabindex="6"

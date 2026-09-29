@@ -12,6 +12,7 @@ use App\Modules\Identity\Events\AccountRegistered;
 use App\Modules\Identity\Exceptions\OtpThrottled;
 use App\Modules\Identity\Services\OtpService;
 use App\Modules\Identity\Support\AccountFieldRules;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use App\Modules\Privacy\Services\ConsentRecorder;
 use App\Support\Captcha\CaptchaRule;
 use App\Support\Roles\Role;
@@ -28,6 +29,12 @@ use Illuminate\Support\Facades\Validator;
  *
  * Every account starts as a buyer. Selling, mechanic and staff roles are
  * granted afterwards, by staff.
+ *
+ * ## The code is only sent when it can arrive
+ *
+ * Until the SMS gateway is live, PhoneVerificationGate is off: the number is
+ * still collected and validated, no code is sent, and the account is
+ * activated by verifying its email address instead.
  *
  * ## Consent is collected here, not on the form
  *
@@ -87,7 +94,11 @@ class RegisterUser
         $user = DB::transaction(function () use ($validated, $marketing): User {
             $user = User::create($validated);
 
-            /* Not Active until the phone number is proven; see PhoneVerificationController. */
+            /*
+             * Not Active until a contact detail is proven: the phone OTP
+             * where there is a gateway to send it (PhoneVerificationController),
+             * the email address otherwise (ActivateOnEmailVerification).
+             */
             $user->forceFill([
                 'status' => AccountStatus::Pending,
                 'status_changed_at' => now(),
@@ -119,15 +130,16 @@ class RegisterUser
     }
 
     /**
-     * Start phone verification. A throttle here is not the registration's
-     * problem — the account exists and the person can ask for another code
-     * from the verification screen.
+     * Start phone verification, where this deployment can finish it.
+     *
+     * A throttle here is not the registration's problem — the account exists
+     * and the person can ask for another code from the verification screen.
      */
     private function sendVerificationCode(User $user, ?string $requestIp): void
     {
         $phone = $user->phone;
 
-        if ($phone === null) {
+        if ($phone === null || PhoneVerificationGate::disabled()) {
             return;
         }
 

@@ -13,6 +13,7 @@ use App\Modules\Identity\Http\Resources\UserResource;
 use App\Modules\Identity\Services\AccountModerationService;
 use App\Modules\Identity\Services\OtpService;
 use App\Modules\Identity\Support\AccountFieldRules;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +35,13 @@ use Symfony\Component\HttpFoundation\Response;
  * `store()` is the equivalent of the web's phone-setup screen. A social
  * sign-in arrives with no number at all, and an account that mistyped one
  * needs to correct it before a code can reach them.
+ *
+ * ## While there is no SMS gateway
+ *
+ * `show()` reports `verification_enabled: false` so a client can skip the
+ * code screen altogether, `store()` still records the number, and the two
+ * endpoints that need a delivered code answer 503. A verified email address
+ * activates the account instead — see Support\PhoneVerificationGate.
  */
 class PhoneVerificationController extends Controller
 {
@@ -55,6 +63,8 @@ class PhoneVerificationController extends Controller
             /* Masked: an app showing the full number teaches nothing and leaks it to a screenshot. */
             'phone' => $user->phoneNumber()?->masked(),
             'verified' => $user->hasVerifiedPhone(),
+            /* False means: do not show a code screen, there is no gateway. */
+            'verification_enabled' => PhoneVerificationGate::enabled(),
             'resend_available_in' => $user->phone === null
                 ? 0
                 : $this->otp->secondsUntilResend($user->phone, OtpPurpose::PhoneVerification),
@@ -90,6 +100,13 @@ class PhoneVerificationController extends Controller
 
         audit($user, 'user.phone_set', $user, null, ['phone' => $phone]);
 
+        if (PhoneVerificationGate::disabled()) {
+            return ApiResponse::ok([
+                'sent' => false,
+                'verification_enabled' => false,
+            ]);
+        }
+
         return $this->issueCode($phone, $request);
     }
 
@@ -99,6 +116,10 @@ class PhoneVerificationController extends Controller
     public function resend(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
+
+        if (PhoneVerificationGate::disabled()) {
+            return $this->unavailable();
+        }
 
         if ($user->hasVerifiedPhone()) {
             return ApiResponse::ok(['verified' => true]);
@@ -122,6 +143,10 @@ class PhoneVerificationController extends Controller
     public function verify(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
+
+        if (PhoneVerificationGate::disabled()) {
+            return $this->unavailable();
+        }
 
         if ($user->phone === null) {
             return ApiResponse::error(
@@ -156,6 +181,22 @@ class PhoneVerificationController extends Controller
             'verified' => true,
             'user' => new UserResource($user->refresh()),
         ]);
+    }
+
+    /**
+     * There is no gateway to send a code through, so there is nothing to
+     * check either. 503 rather than 404: the endpoint exists and will work
+     * again, which is what tells a client to retry later instead of to drop
+     * the screen from its build.
+     */
+    private function unavailable(): JsonResponse
+    {
+        return ApiResponse::error(
+            'phone_verification_unavailable',
+            'Phone verification by SMS is not available yet. Verify your email address instead.',
+            ['verification_enabled' => false],
+            Response::HTTP_SERVICE_UNAVAILABLE,
+        );
     }
 
     /**

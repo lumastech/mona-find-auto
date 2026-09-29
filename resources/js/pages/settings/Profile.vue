@@ -104,8 +104,12 @@ const user = useAuthenticatedUser();
                     autocomplete="tel"
                     placeholder="0977 123 456"
                 />
+                <!-- Only meaningful where a code can be sent to confirm it. -->
                 <p
-                    v-if="!user.phone_verified_at"
+                    v-if="
+                        page.props.platform.phoneVerification &&
+                        !user.phone_verified_at
+                    "
                     class="text-muted-foreground text-xs"
                 >
                     This number is not confirmed yet.

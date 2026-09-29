@@ -7,6 +7,7 @@ namespace App\Modules\Identity\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Enums\SocialProvider;
 use App\Modules\Identity\Services\SocialAuthService;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,8 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
  * Signing in with Google or Facebook.
  *
  * A social login is a way to prove an email address, not a way around the
- * platform's own checks: a new account still lands in Pending and still has
- * to verify a Zambian phone number before it can trade.
+ * platform's own checks: a new account still has to give the Zambian phone
+ * number and address the platform needs, and — where there is an SMS gateway
+ * to prove it with — still has to verify that number before it can trade.
  */
 class SocialAuthController extends Controller
 {
@@ -61,9 +63,16 @@ class SocialAuthController extends Controller
         audit($user, 'user.logged_in', $user, null, ['via' => $driver->value]);
 
         /* A social account has no phone number yet; that is the next thing it needs. */
-        return $user->hasVerifiedPhone()
-            ? redirect()->intended(route('dashboard'))
-            : to_route('phone.setup');
+        if (PhoneVerificationGate::enabled()) {
+            return $user->hasVerifiedPhone()
+                ? redirect()->intended(route('dashboard'))
+                : to_route('phone.setup');
+        }
+
+        /* No gateway: only a MISSING number still stands in the way. */
+        return $user->phone === null
+            ? to_route('phone.setup')
+            : redirect()->intended(route('dashboard'));
     }
 
     /**

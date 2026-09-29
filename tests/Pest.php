@@ -180,6 +180,20 @@ function fakeVideoUpload(string $name = 'walkround.mp4', int $kilobytes = 64): U
 }
 
 /**
+ * Turn the SMS OTP back on for a test that is about the OTP.
+ *
+ * MonaFind has no SMS gateway yet, so `integrations.sms.phone_verification`
+ * is off by default and registration sends no code (see
+ * App\Modules\Identity\Support\PhoneVerificationGate). The flows that
+ * exist FOR the code — verification, SMS password reset, the phone gate —
+ * say so here rather than being deleted while we wait for the gateway.
+ */
+function withPhoneVerification(): void
+{
+    config()->set('integrations.sms.phone_verification', true);
+}
+
+/**
  * The plaintext code the fake SMS provider last sent to a number.
  *
  * Codes are stored hashed, so a test that needs to type one back in has to

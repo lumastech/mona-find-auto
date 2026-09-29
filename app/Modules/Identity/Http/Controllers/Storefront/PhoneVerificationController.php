@@ -10,6 +10,7 @@ use App\Modules\Identity\Enums\OtpPurpose;
 use App\Modules\Identity\Exceptions\OtpThrottled;
 use App\Modules\Identity\Services\AccountModerationService;
 use App\Modules\Identity\Services\OtpService;
+use App\Modules\Identity\Support\PhoneVerificationGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +23,10 @@ use Inertia\Response;
  * This matters more than it looks: a Zambian buyer is contacted about an
  * order by phone, and a seller's payout is routed to a mobile-money wallet on
  * that number.
+ *
+ * Every action here needs a code to have been sent, so all three stand down
+ * while there is no SMS gateway (Support\PhoneVerificationGate) rather than
+ * showing a screen waiting for a text that will never arrive.
  */
 class PhoneVerificationController extends Controller
 {
@@ -35,6 +40,10 @@ class PhoneVerificationController extends Controller
     public function show(Request $request): Response|RedirectResponse
     {
         $user = $this->currentUser($request);
+
+        if (PhoneVerificationGate::disabled()) {
+            return to_route('dashboard');
+        }
 
         if ($user->hasVerifiedPhone()) {
             return to_route('dashboard');
@@ -60,6 +69,10 @@ class PhoneVerificationController extends Controller
     {
         $user = $this->currentUser($request);
 
+        if (PhoneVerificationGate::disabled()) {
+            return to_route('dashboard');
+        }
+
         if ($user->hasVerifiedPhone()) {
             return to_route('dashboard');
         }
@@ -83,6 +96,10 @@ class PhoneVerificationController extends Controller
     public function verify(Request $request): RedirectResponse
     {
         $user = $this->currentUser($request);
+
+        if (PhoneVerificationGate::disabled()) {
+            return to_route('dashboard');
+        }
 
         if ($user->phone === null) {
             return to_route('phone.setup');
