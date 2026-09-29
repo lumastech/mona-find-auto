@@ -53,6 +53,8 @@ class SellerRegistrationService
      * Record one step's answers and move the applicant to the next.
      *
      * @param  array<string, mixed>  $values
+     *
+     * @throws RegistrationIncomplete
      */
     public function saveStep(
         SellerRegistrationDraft $draft,
@@ -60,6 +62,8 @@ class SellerRegistrationService
         array $values,
         ?User $actor = null,
     ): SellerRegistrationDraft {
+        $this->assertStepFinished($draft, $step);
+
         DB::transaction(function () use ($draft, $step, $values, $actor): void {
             $draft->putStep($step, $values);
             $draft->current_step = $step->next() ?? $step;
@@ -84,6 +88,35 @@ class SellerRegistrationService
         });
 
         return $draft->refresh();
+    }
+
+    /**
+     * Payout and documents have no answers of their own — what they collect is
+     * attached to the seller through separate endpoints — so leaving either is
+     * only allowed once that has actually happened. Without this check the
+     * draft's furthest step would never pass them.
+     *
+     * @throws RegistrationIncomplete
+     */
+    private function assertStepFinished(SellerRegistrationDraft $draft, RegistrationStep $step): void
+    {
+        if ($step !== RegistrationStep::Payout && $step !== RegistrationStep::Documents) {
+            return;
+        }
+
+        $seller = $draft->seller;
+
+        if ($seller === null) {
+            throw RegistrationIncomplete::atStep(RegistrationStep::Business);
+        }
+
+        if ($step === RegistrationStep::Payout && ! $this->hasConfirmedPayoutAccount($seller)) {
+            throw RegistrationIncomplete::noConfirmedPayoutAccount();
+        }
+
+        if ($step === RegistrationStep::Documents) {
+            $this->assertDocumentsUploaded($seller);
+        }
     }
 
     /**
@@ -158,10 +191,23 @@ class SellerRegistrationService
             );
         }
 
-        if (! $seller->payoutAccounts()->whereNotNull('lenco_recipient_id')->exists()) {
+        if (! $this->hasConfirmedPayoutAccount($seller)) {
             throw RegistrationIncomplete::atStep(RegistrationStep::Payout);
         }
 
+        $this->assertDocumentsUploaded($seller);
+    }
+
+    private function hasConfirmedPayoutAccount(Seller $seller): bool
+    {
+        return $seller->payoutAccounts()->whereNotNull('lenco_recipient_id')->exists();
+    }
+
+    /**
+     * @throws RegistrationIncomplete
+     */
+    private function assertDocumentsUploaded(Seller $seller): void
+    {
         $missingDocuments = $seller->missingDocuments();
 
         if ($missingDocuments !== []) {
@@ -184,7 +230,7 @@ class SellerRegistrationService
             'type' => $draft->sellerType() !== null,
             'business' => $seller !== null,
             'policies' => $seller !== null && $seller->missingPolicies() === [],
-            'payout' => $seller !== null && $seller->payoutAccounts()->whereNotNull('lenco_recipient_id')->exists(),
+            'payout' => $seller !== null && $this->hasConfirmedPayoutAccount($seller),
             'documents' => $seller !== null && $seller->missingDocuments() === [],
         ];
     }

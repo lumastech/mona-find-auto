@@ -244,3 +244,44 @@ it('will not let an applicant remove another seller\'s payout account from the w
 
     expect($someoneElses->fresh())->not->toBeNull();
 });
+
+it('keeps the applicant on the payout step until an account is confirmed', function () {
+    $user = User::factory()->create();
+    startRegistration($user);
+
+    $this->actingAs($user)
+        ->post(route('sellers.register.store', ['step' => RegistrationStep::Payout->value]))
+        ->assertSessionHasErrors('step');
+
+    $this->actingAs($user)
+        ->post(route('sellers.register.payout-accounts.store'), [
+            'method' => PayoutMethod::MobileMoney->value,
+            'mobile_number' => '0971864421',
+            'network' => MobileNetwork::Airtel->value,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->post(route('sellers.register.store', ['step' => RegistrationStep::Payout->value]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('sellers.register.step', ['step' => RegistrationStep::Documents->value]));
+
+    expect(SellerRegistrationDraft::query()->where('user_id', $user->id)->sole()->furthest_step)
+        ->toBe(RegistrationStep::Payout);
+
+    $this->actingAs($user)
+        ->get(route('sellers.register.step', ['step' => RegistrationStep::Documents->value]))
+        ->assertOk();
+});
+
+it('keeps the applicant on the documents step until every required document is in', function () {
+    $user = User::factory()->create();
+    startRegistration($user);
+
+    $this->actingAs($user)
+        ->post(route('sellers.register.store', ['step' => RegistrationStep::Documents->value]))
+        ->assertSessionHasErrors('step');
+
+    expect(SellerRegistrationDraft::query()->where('user_id', $user->id)->sole()->furthest_step)
+        ->not->toBe(RegistrationStep::Documents);
+});

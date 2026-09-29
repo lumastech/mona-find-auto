@@ -102,13 +102,18 @@ withDefaults(
         </div>
 
         <template v-if="!standalone">
-            <Link
+            <Form
                 v-if="canContinue"
-                :href="sellers.register.step({ step: 'review' })"
-                class="inline-flex"
+                v-bind="sellers.register.store.form({ step: 'documents' })"
+                v-slot="{ errors, processing }"
+                class="space-y-2"
             >
-                <Button>Continue to review</Button>
-            </Link>
+                <Button type="submit" :disabled="processing">
+                    <Spinner v-if="processing" class="size-4" />
+                    Continue to review
+                </Button>
+                <InputError :message="errors.step" />
+            </Form>
             <p v-else class="text-muted-foreground text-sm">
                 Upload the required documents to carry on.
             </p>

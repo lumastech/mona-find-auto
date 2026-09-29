@@ -253,12 +253,17 @@ const method = ref<PayoutMethodValue>('bank');
             </Button>
         </Form>
 
-        <Link
+        <Form
             v-if="canContinue"
-            :href="sellers.register.step({ step: 'documents' })"
-            class="inline-flex"
+            v-bind="sellers.register.store.form({ step: 'payout' })"
+            v-slot="{ errors, processing }"
+            class="space-y-2"
         >
-            <Button variant="outline">Continue to documents</Button>
-        </Link>
+            <Button type="submit" variant="outline" :disabled="processing">
+                <Spinner v-if="processing" class="size-4" />
+                Continue to documents
+            </Button>
+            <InputError :message="errors.step" />
+        </Form>
     </div>
 </template>

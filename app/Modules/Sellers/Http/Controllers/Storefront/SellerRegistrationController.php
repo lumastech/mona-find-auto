@@ -88,7 +88,11 @@ class SellerRegistrationController extends Controller
         $user = $this->currentUser($request);
         $draft = $this->registration->draftFor($user);
 
-        $draft = $this->registration->saveStep($draft, $step, $request->answers(), $user);
+        try {
+            $draft = $this->registration->saveStep($draft, $step, $request->answers(), $user);
+        } catch (RegistrationIncomplete $exception) {
+            throw ValidationException::withMessages(['step' => $exception->getMessage()]);
+        }
 
         return to_route('sellers.register.step', ['step' => $draft->current_step->value]);
     }

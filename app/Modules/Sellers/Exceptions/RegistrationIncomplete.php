@@ -8,13 +8,18 @@ use App\Modules\Sellers\Enums\RegistrationStep;
 use RuntimeException;
 
 /**
- * An application was submitted with a step still unanswered.
+ * An application was submitted, or a step left, with something still missing.
  */
 class RegistrationIncomplete extends RuntimeException
 {
     public static function atStep(RegistrationStep $step): self
     {
         return new self(sprintf('Finish the "%s" step before you send your application.', $step->label()));
+    }
+
+    public static function noConfirmedPayoutAccount(): self
+    {
+        return new self('Add a payout account and let us confirm it before you carry on.');
     }
 
     /**
