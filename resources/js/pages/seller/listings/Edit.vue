@@ -359,7 +359,7 @@ const uploadVideo = (): void => {
                         </div>
 
                         <div class="grid gap-2">
-                            <Label for="condition">Condition</Label>
+                            <Label for="condition">Condition 555</Label>
                             <select
                                 id="condition"
                                 v-model="form.condition"
