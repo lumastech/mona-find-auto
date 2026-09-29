@@ -93,6 +93,26 @@ it('creates a listing as a draft and sends the seller to its form', function ():
         ->and($product->variants()->first()->price)->toBeMoney(125050);
 });
 
+it('accepts the "on" a ticked delivery checkbox posts', function (): void {
+    $this->actingAs($this->seller->user)
+        ->post(route('seller.listings.store'), listingForm($this->category, [
+            'delivery_available' => 'on',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect(Product::query()->firstOrFail()->delivery_available)->toBeTrue();
+});
+
+it('tells a seller an engine size is in cc', function (): void {
+    $this->actingAs($this->seller->user)
+        ->post(route('seller.listings.store'), listingForm($this->category, [
+            'engine_size_cc' => 2,
+        ]))
+        ->assertSessionHasErrors([
+            'engine_size_cc' => 'Engine size is in cc, between 50 and 30000 — a 2.0 litre engine is 2000.',
+        ]);
+});
+
 it('rejects a car breaker posting a brand new condition', function (): void {
     $breaker = Seller::factory()->ofType(SellerType::CarBreaker)->create();
 

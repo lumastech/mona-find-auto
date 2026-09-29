@@ -31,6 +31,16 @@ class ProductRequest extends FormRequest
     }
 
     /**
+     * A ticked HTML checkbox arrives as "on", which the boolean rule refuses.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('delivery_available')) {
+            $this->merge(['delivery_available' => $this->boolean('delivery_available')]);
+        }
+    }
+
+    /**
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array

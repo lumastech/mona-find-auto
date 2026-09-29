@@ -92,6 +92,8 @@ trait ListingFieldRules
             'description.min' => 'Describe the part in at least 20 characters so a buyer knows what they are getting.',
             'category_id.required' => 'Choose the category this part belongs in.',
             'year_to.gte' => 'The last year a part fits cannot be before the first.',
+            'engine_size_cc.min' => 'Engine size is in cc, between 50 and 30000 — a 2.0 litre engine is 2000.',
+            'engine_size_cc.max' => 'Engine size is in cc, between 50 and 30000 — a 2.0 litre engine is 2000.',
             'price.gt' => 'A listing needs a price above zero.',
             'price.required_without' => 'Give this listing a price.',
             'variants.*.price.gt' => 'Every option needs a price above zero.',

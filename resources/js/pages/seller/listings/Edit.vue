@@ -151,6 +151,15 @@ const clientErrors = computed<Record<string, string>>(() => {
     }
 
     if (
+        form.engine_size_cc !== '' &&
+        (Number(form.engine_size_cc) < 50 ||
+            Number(form.engine_size_cc) > 30000)
+    ) {
+        errors.engine_size_cc =
+            'Engine size is in cc, between 50 and 30000 — a 2.0 litre engine is 2000.';
+    }
+
+    if (
         form.year_from &&
         form.year_to &&
         Number(form.year_to) < Number(form.year_from)
@@ -414,6 +423,9 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('sourcing', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -424,6 +436,9 @@ const uploadVideo = (): void => {
                                 name="part_number"
                                 placeholder="23670-0L050"
                             />
+                            <InputError
+                                :message="errorFor('part_number', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -432,6 +447,9 @@ const uploadVideo = (): void => {
                                 id="oem_number"
                                 v-model="form.oem_number"
                                 name="oem_number"
+                            />
+                            <InputError
+                                :message="errorFor('oem_number', errors)"
                             />
                         </div>
                     </CardContent>
@@ -459,6 +477,9 @@ const uploadVideo = (): void => {
                                     {{ make.name }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('make_id', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -479,6 +500,9 @@ const uploadVideo = (): void => {
                                     {{ model.name }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('vehicle_model_id', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -489,6 +513,9 @@ const uploadVideo = (): void => {
                                 name="year_from"
                                 type="number"
                                 min="1950"
+                            />
+                            <InputError
+                                :message="errorFor('year_from', errors)"
                             />
                         </div>
 
@@ -514,6 +541,9 @@ const uploadVideo = (): void => {
                                 name="engine_size_cc"
                                 type="number"
                             />
+                            <InputError
+                                :message="errorFor('engine_size_cc', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -523,6 +553,9 @@ const uploadVideo = (): void => {
                                 v-model="form.engine_code"
                                 name="engine_code"
                                 placeholder="2KD-FTV"
+                            />
+                            <InputError
+                                :message="errorFor('engine_code', errors)"
                             />
                         </div>
 
@@ -543,6 +576,9 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('fuel_type', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -562,6 +598,9 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('transmission', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -581,6 +620,9 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('drive_type', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
@@ -600,11 +642,15 @@ const uploadVideo = (): void => {
                                     {{ option.label }}
                                 </option>
                             </select>
+                            <InputError
+                                :message="errorFor('body_type', errors)"
+                            />
                         </div>
 
                         <div class="grid gap-2">
                             <Label for="trim">Trim or variant</Label>
                             <Input id="trim" v-model="form.trim" name="trim" />
+                            <InputError :message="errorFor('trim', errors)" />
                         </div>
 
                         <div class="grid gap-2 sm:col-span-2">
@@ -617,6 +663,11 @@ const uploadVideo = (): void => {
                                 name="chassis_compatibility"
                                 rows="2"
                                 class="border-input bg-background rounded-md border p-3 text-sm"
+                            />
+                            <InputError
+                                :message="
+                                    errorFor('chassis_compatibility', errors)
+                                "
                             />
                         </div>
                     </CardContent>
@@ -666,6 +717,9 @@ const uploadVideo = (): void => {
                                 name="warranty_text"
                                 placeholder="30-day warranty on fitment."
                             />
+                            <InputError
+                                :message="errorFor('warranty_text', errors)"
+                            />
                         </div>
 
                         <div class="flex items-center gap-2 sm:col-span-2">
@@ -673,10 +727,16 @@ const uploadVideo = (): void => {
                                 id="delivery_available"
                                 v-model="form.delivery_available"
                                 name="delivery_available"
+                                value="1"
                             />
                             <Label for="delivery_available">
                                 I can deliver this part
                             </Label>
+                            <InputError
+                                :message="
+                                    errorFor('delivery_available', errors)
+                                "
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -688,7 +748,11 @@ const uploadVideo = (): void => {
                     </Button>
 
                     <p
-                        v-if="showClientErrors && !canSubmitForm"
+                        v-if="
+                            Object.keys(errors).length > 0 ||
+                            (showClientErrors && !canSubmitForm)
+                        "
+                        role="alert"
                         class="text-destructive text-sm"
                     >
                         Fix the fields marked above.
