@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Enums\Condition;
 use App\Modules\Catalog\Enums\InspectionStatus;
 use App\Modules\Catalog\Enums\ListingStatus;
+use App\Modules\Catalog\Exceptions\InvalidListingTransition;
 use App\Modules\Catalog\Http\Requests\Admin\ModerationDecisionRequest;
 use App\Modules\Catalog\Http\Resources\ProductDetailResource;
 use App\Modules\Catalog\Http\Resources\SellerProductResource;
@@ -18,6 +19,7 @@ use App\Modules\Catalog\Services\ListingModerationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -135,6 +137,8 @@ class ListingModerationController extends Controller
             'rejectableFields' => ModerationDecisionRequest::REJECTABLE_FIELDS,
             'inspectionStatuses' => InspectionStatus::options(),
             'canModerate' => $request->user()?->can('moderate', $product) ?? false,
+            'canPublish' => $product->status->canTransitionTo(ListingStatus::Published),
+            'canReject' => $product->status->canTransitionTo(ListingStatus::Rejected),
             'canInspect' => $request->user()?->can('inspect', $product) ?? false,
         ]);
     }
@@ -145,7 +149,7 @@ class ListingModerationController extends Controller
 
         $validated = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
 
-        $this->moderation->publish($product, $this->currentUser($request), $validated['note'] ?? null);
+        $this->apply(fn () => $this->moderation->publish($product, $this->currentUser($request), $validated['note'] ?? null));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Listing published.')]);
 
@@ -154,13 +158,13 @@ class ListingModerationController extends Controller
 
     public function reject(ModerationDecisionRequest $request, Product $product): RedirectResponse
     {
-        $this->moderation->reject(
+        $this->apply(fn () => $this->moderation->reject(
             $product,
             $this->currentUser($request),
             $request->string('reason')->toString(),
             $request->fieldReasons(),
             $request->string('note')->toString() ?: null,
-        );
+        ));
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -175,14 +179,33 @@ class ListingModerationController extends Controller
      */
     public function unpublish(ModerationDecisionRequest $request, Product $product): RedirectResponse
     {
-        $this->moderation->unpublish(
+        $this->apply(fn () => $this->moderation->unpublish(
             $product,
             $this->currentUser($request),
             $request->string('reason')->toString(),
-        );
+        ));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Listing taken down.')]);
 
         return back();
+    }
+
+    /**
+     * Run a transition, turning a workflow refusal into a message on the page
+     * rather than an error screen — a moderator with a stale tab open, or
+     * rejecting a listing another moderator already published, is a mistake
+     * to explain, not a crash.
+     *
+     * @param  callable(): Product  $transition
+     *
+     * @throws ValidationException
+     */
+    private function apply(callable $transition): void
+    {
+        try {
+            $transition();
+        } catch (InvalidListingTransition $exception) {
+            throw ValidationException::withMessages(['status' => $exception->getMessage()]);
+        }
     }
 }

@@ -102,6 +102,35 @@ it('makes a moderator say what to fix rather than only that something is wrong',
     expect($product->refresh()->status)->toBe(ListingStatus::PendingReview);
 });
 
+/*
+ * Only a listing in the queue can be rejected. A moderator with a stale tab
+ * open, rejecting what a colleague already published, is told why on the
+ * page rather than shown a 500.
+ */
+it('explains rather than crashes when a live listing is rejected', function (): void {
+    asModerator();
+    $product = Product::factory()->create();
+
+    $this->post(route('admin.listings.reject', $product), [
+        'reason' => 'The photos do not show the part clearly enough.',
+    ])->assertSessionHasErrors(['status' => 'A listing cannot go from Published to Rejected.']);
+
+    expect($product->refresh()->status)->toBe(ListingStatus::Published);
+});
+
+it('offers only the decisions the listing can legally take', function (ListingStatus $status, bool $canPublish, bool $canReject): void {
+    asModerator();
+    $product = Product::factory()->create(['status' => $status]);
+
+    $this->get(route('admin.listings.show', $product))
+        ->assertInertia(fn ($page) => $page
+            ->where('canPublish', $canPublish)
+            ->where('canReject', $canReject));
+})->with([
+    'in the queue' => [ListingStatus::PendingReview, true, true],
+    'already live' => [ListingStatus::Published, false, false],
+]);
+
 it('keeps the internal note out of what the seller is told', function (): void {
     asModerator();
     $product = Product::factory()->pendingReview()->create();

@@ -50,6 +50,8 @@ const props = defineProps<{
     rejectableFields: string[];
     inspectionStatuses: Array<Pick<InspectionBadge, 'value' | 'label'>>;
     canModerate: boolean;
+    canPublish: boolean;
+    canReject: boolean;
     canInspect: boolean;
 }>();
 
@@ -278,24 +280,26 @@ const rejecting = ref(false);
             </CardContent>
         </Card>
 
-        <Card v-if="canModerate">
+        <Card v-if="canModerate && (canPublish || canReject)">
             <CardHeader>
                 <CardTitle class="text-base">Decision</CardTitle>
             </CardHeader>
             <CardContent class="space-y-6">
                 <div class="flex flex-wrap gap-3">
                     <Form
-                        v-if="listing.status.value !== 'published'"
+                        v-if="canPublish"
                         v-bind="adminListings.publish.form(listing.slug)"
-                        v-slot="{ processing }"
+                        v-slot="{ errors, processing }"
                     >
                         <Button type="submit" :disabled="processing">
                             <Check class="size-4" aria-hidden="true" />
                             Publish
                         </Button>
+                        <InputError :message="errors.status" />
                     </Form>
 
                     <Button
+                        v-if="canReject"
                         type="button"
                         variant="destructive"
                         @click="rejecting = !rejecting"
@@ -306,7 +310,7 @@ const rejecting = ref(false);
                 </div>
 
                 <Form
-                    v-if="rejecting"
+                    v-if="canReject && rejecting"
                     v-bind="adminListings.reject.form(listing.slug)"
                     v-slot="{ errors, processing }"
                     class="space-y-4 rounded-lg border p-4"
@@ -359,6 +363,8 @@ const rejecting = ref(false);
                             placeholder="Never shown to the seller"
                         />
                     </div>
+
+                    <InputError :message="errors.status" />
 
                     <Button
                         type="submit"
