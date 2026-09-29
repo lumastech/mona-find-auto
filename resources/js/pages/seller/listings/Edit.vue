@@ -359,7 +359,7 @@ const uploadVideo = (): void => {
                         </div>
 
                         <div class="grid gap-2">
-                            <Label for="condition">Condition 555</Label>
+                            <Label for="condition">Condition</Label>
                             <select
                                 id="condition"
                                 v-model="form.condition"
@@ -391,7 +391,7 @@ const uploadVideo = (): void => {
                             >
                                 Everything you sell comes off a scrapped
                                 vehicle, so your listings carry the Car Breaker
-                                badge.
+                                badge 5555.
                             </p>
                             <InputError
                                 :message="errorFor('condition', errors)"
