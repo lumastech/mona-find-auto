@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { BadgeCheck, Check, ImageOff, ScanEye, X } from '@lucide/vue';
+import { BadgeCheck, Check, EyeOff, ImageOff, ScanEye, X } from '@lucide/vue';
 import { ref } from 'vue';
 import ListingBadges from '@/components/catalog/ListingBadges.vue';
 import ListingStatusBadge from '@/components/catalog/ListingStatusBadge.vue';
@@ -52,11 +52,13 @@ const props = defineProps<{
     canModerate: boolean;
     canPublish: boolean;
     canReject: boolean;
+    canUnpublish: boolean;
     canInspect: boolean;
 }>();
 
 const activePhoto = ref(props.listing.photos[0] ?? null);
 const rejecting = ref(false);
+const takingDown = ref(false);
 </script>
 
 <template>
@@ -280,7 +282,7 @@ const rejecting = ref(false);
             </CardContent>
         </Card>
 
-        <Card v-if="canModerate && (canPublish || canReject)">
+        <Card v-if="canModerate && (canPublish || canReject || canUnpublish)">
             <CardHeader>
                 <CardTitle class="text-base">Decision</CardTitle>
             </CardHeader>
@@ -307,7 +309,57 @@ const rejecting = ref(false);
                         <X class="size-4" aria-hidden="true" />
                         {{ rejecting ? 'Cancel rejection' : 'Reject' }}
                     </Button>
+
+                    <Button
+                        v-if="canUnpublish"
+                        type="button"
+                        variant="destructive"
+                        @click="takingDown = !takingDown"
+                    >
+                        <EyeOff class="size-4" aria-hidden="true" />
+                        {{ takingDown ? 'Cancel take-down' : 'Take down' }}
+                    </Button>
                 </div>
+
+                <Form
+                    v-if="canUnpublish && takingDown"
+                    v-bind="adminListings.unpublish.form(listing.slug)"
+                    v-slot="{ errors, processing }"
+                    class="space-y-4 rounded-lg border p-4"
+                    @success="takingDown = false"
+                >
+                    <p class="text-muted-foreground text-sm">
+                        The listing leaves the storefront straight away. It
+                        is not deleted, and you can publish it again later
+                        without another review.
+                    </p>
+
+                    <div class="grid gap-2">
+                        <Label for="takedown-reason">
+                            Why it is coming down
+                        </Label>
+                        <textarea
+                            id="takedown-reason"
+                            name="reason"
+                            rows="3"
+                            required
+                            class="border-input bg-background rounded-md border p-3 text-sm"
+                            placeholder="The part number does not match the photos."
+                        />
+                        <InputError :message="errors.reason" />
+                    </div>
+
+                    <InputError :message="errors.status" />
+
+                    <Button
+                        type="submit"
+                        variant="destructive"
+                        :disabled="processing"
+                    >
+                        <Spinner v-if="processing" />
+                        Take listing down
+                    </Button>
+                </Form>
 
                 <Form
                     v-if="canReject && rejecting"

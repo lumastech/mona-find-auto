@@ -139,6 +139,7 @@ class ListingModerationController extends Controller
             'canModerate' => $request->user()?->can('moderate', $product) ?? false,
             'canPublish' => $product->status->canTransitionTo(ListingStatus::Published),
             'canReject' => $product->status->canTransitionTo(ListingStatus::Rejected),
+            'canUnpublish' => $product->status->canTransitionTo(ListingStatus::Unpublished),
             'canInspect' => $request->user()?->can('inspect', $product) ?? false,
         ]);
     }

@@ -118,18 +118,47 @@ it('explains rather than crashes when a live listing is rejected', function (): 
     expect($product->refresh()->status)->toBe(ListingStatus::Published);
 });
 
-it('offers only the decisions the listing can legally take', function (ListingStatus $status, bool $canPublish, bool $canReject): void {
+it('offers only the decisions the listing can legally take', function (ListingStatus $status, bool $canPublish, bool $canReject, bool $canUnpublish): void {
     asModerator();
     $product = Product::factory()->create(['status' => $status]);
 
     $this->get(route('admin.listings.show', $product))
         ->assertInertia(fn ($page) => $page
             ->where('canPublish', $canPublish)
-            ->where('canReject', $canReject));
+            ->where('canReject', $canReject)
+            ->where('canUnpublish', $canUnpublish));
 })->with([
-    'in the queue' => [ListingStatus::PendingReview, true, true],
-    'already live' => [ListingStatus::Published, false, false],
+    'in the queue' => [ListingStatus::PendingReview, true, true, false],
+    'already live' => [ListingStatus::Published, false, false, true],
+    'taken down' => [ListingStatus::Unpublished, true, false, false],
 ]);
+
+it('takes a live listing down with a reason', function (): void {
+    $moderator = asModerator();
+    $product = Product::factory()->create();
+
+    $this->from(route('admin.listings.show', $product))
+        ->post(route('admin.listings.unpublish', $product), [
+            'reason' => 'The part number does not match the photos.',
+        ])
+        ->assertRedirect(route('admin.listings.show', $product));
+
+    expect($product->refresh()->status)->toBe(ListingStatus::Unpublished)
+        ->and(AuditLog::query()
+            ->where('action', 'listing.unpublished')
+            ->where('actor_id', $moderator->id)
+            ->exists())->toBeTrue();
+});
+
+it('will not take a listing down without a reason', function (): void {
+    asModerator();
+    $product = Product::factory()->create();
+
+    $this->post(route('admin.listings.unpublish', $product), ['reason' => ''])
+        ->assertSessionHasErrors('reason');
+
+    expect($product->refresh()->status)->toBe(ListingStatus::Published);
+});
 
 it('keeps the internal note out of what the seller is told', function (): void {
     asModerator();
