@@ -5,7 +5,6 @@ import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import seller from '@/routes/seller';
 import sellers from '@/routes/sellers';
 import type { SellerDocument } from '@/types';
 
@@ -59,7 +58,7 @@ withDefaults(
 
                 <Link
                     v-if="document.uploaded && document.media_id"
-                    :href="seller.documents.destroy(document.media_id)"
+                    :href="sellers.register.documents.destroy(document.media_id)"
                     method="delete"
                     as="button"
                     class="text-muted-foreground hover:text-destructive"
@@ -75,7 +74,7 @@ withDefaults(
 
             <Form
                 v-else
-                v-bind="seller.documents.store.form()"
+                v-bind="sellers.register.documents.store.form()"
                 v-slot="{ errors, processing }"
                 class="flex flex-wrap items-center gap-3"
             >

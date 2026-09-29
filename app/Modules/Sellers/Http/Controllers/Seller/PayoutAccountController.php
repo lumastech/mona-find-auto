@@ -27,6 +27,10 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
  * a warning: a payout addressed to a number nobody owns either bounces weeks
  * later or lands in a stranger's wallet, and both cost far more to unpick
  * than making the seller retype it now.
+ *
+ * Mounted twice: in the portal, and in the sign-up wizard for an applicant who
+ * does not hold the seller role yet. Every action returns to wherever it was
+ * submitted from so each area stays on its own page.
  */
 class PayoutAccountController extends Controller
 {
@@ -67,7 +71,7 @@ class PayoutAccountController extends Controller
             'message' => __('Account confirmed with the bank as :name.', ['name' => $account->resolved_name]),
         ]);
 
-        return to_route('seller.payout-accounts.index');
+        return back();
     }
 
     public function makeDefault(Request $request, PayoutAccount $payoutAccount): RedirectResponse
@@ -78,7 +82,7 @@ class PayoutAccountController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payouts will go to this account.')]);
 
-        return to_route('seller.payout-accounts.index');
+        return back();
     }
 
     public function destroy(Request $request, PayoutAccount $payoutAccount): RedirectResponse
@@ -89,7 +93,7 @@ class PayoutAccountController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Account removed.')]);
 
-        return to_route('seller.payout-accounts.index');
+        return back();
     }
 
     /**

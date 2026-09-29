@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import seller from '@/routes/seller';
 import sellers from '@/routes/sellers';
 import type {
     BankOption,
@@ -64,7 +63,7 @@ const method = ref<PayoutMethodValue>('bank');
                 </div>
 
                 <Link
-                    :href="seller.payoutAccounts.destroy(account.id)"
+                    :href="sellers.register.payoutAccounts.destroy(account.id)"
                     method="delete"
                     as="button"
                     class="text-muted-foreground hover:text-destructive"
@@ -76,7 +75,7 @@ const method = ref<PayoutMethodValue>('bank');
         </div>
 
         <Form
-            v-bind="seller.payoutAccounts.store.form()"
+            v-bind="sellers.register.payoutAccounts.store.form()"
             v-slot="{ errors, processing }"
             class="space-y-6"
         >

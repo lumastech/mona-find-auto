@@ -34,3 +34,4 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Modules/Shopping/** | .ai/rules/shopping.md |
 | app/Modules/Orders/Support/MonetisationSnapshot.php | .ai/rules/support.md |
 | tests/** | .ai/rules/tests.md |
+| resources/js/components/seller/wizard/** | .ai/rules/wizard.md |

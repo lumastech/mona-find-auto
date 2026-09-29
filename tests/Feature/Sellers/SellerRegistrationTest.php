@@ -3,14 +3,20 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Modules\Identity\Enums\MobileNetwork;
 use App\Modules\Identity\Models\City;
+use App\Modules\Sellers\Enums\DocumentType;
+use App\Modules\Sellers\Enums\PayoutMethod;
 use App\Modules\Sellers\Enums\PolicyType;
 use App\Modules\Sellers\Enums\RegistrationStep;
 use App\Modules\Sellers\Enums\SellerType;
 use App\Modules\Sellers\Enums\VerificationStatus;
+use App\Modules\Sellers\Models\PayoutAccount;
 use App\Modules\Sellers\Models\Seller;
 use App\Modules\Sellers\Models\SellerRegistrationDraft;
 use App\Support\Roles\Role;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * A complete business-details step, pointing at a real city.
@@ -180,4 +186,61 @@ it('blocks submission until every step is finished', function () {
         ->assertSessionHasErrors('submit');
 
     expect($user->refresh()->hasRole(Role::Seller->value))->toBeFalse();
+});
+
+it('lets an applicant add and remove a payout account before they hold the seller role', function () {
+    $user = User::factory()->create();
+    $seller = startRegistration($user);
+    $payoutStep = route('sellers.register.step', ['step' => RegistrationStep::Payout->value]);
+
+    $this->actingAs($user)
+        ->from($payoutStep)
+        ->post(route('sellers.register.payout-accounts.store'), [
+            'method' => PayoutMethod::MobileMoney->value,
+            'mobile_number' => '0971864421',
+            'network' => MobileNetwork::Airtel->value,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect($payoutStep);
+
+    $account = $seller->payoutAccounts()->sole();
+
+    expect($user->refresh()->hasRole(Role::Seller->value))->toBeFalse();
+
+    $this->actingAs($user)
+        ->from($payoutStep)
+        ->delete(route('sellers.register.payout-accounts.destroy', $account))
+        ->assertRedirect($payoutStep);
+
+    expect($seller->payoutAccounts()->count())->toBe(0);
+});
+
+it('lets an applicant upload a document before they hold the seller role', function () {
+    Storage::fake('local');
+    $user = User::factory()->create();
+    $seller = startRegistration($user);
+
+    $this->actingAs($user)
+        ->post(route('sellers.register.documents.store'), [
+            'document_type' => DocumentType::OwnerIdentification->value,
+            'file' => UploadedFile::fake()->createWithContent(
+                'nrc.pdf',
+                "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF",
+            ),
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($seller->getMedia('documents'))->toHaveCount(1);
+});
+
+it('will not let an applicant remove another seller\'s payout account from the wizard', function () {
+    $user = User::factory()->create();
+    startRegistration($user);
+    $someoneElses = PayoutAccount::factory()->create();
+
+    $this->actingAs($user)
+        ->delete(route('sellers.register.payout-accounts.destroy', $someoneElses))
+        ->assertNotFound();
+
+    expect($someoneElses->fresh())->not->toBeNull();
 });

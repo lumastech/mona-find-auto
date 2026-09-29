@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
  *
  * Uploads go to the private disk. Nothing here ever produces a URL — even the
  * seller reads their own documents back through the streaming route.
+ *
+ * Mounted in the portal and in the sign-up wizard; both return `back()`.
  */
 class DocumentController extends Controller
 {
