@@ -11,6 +11,7 @@ use App\Modules\Orders\Models\OrderGroup;
 use App\Modules\Search\Services\ListingIndexer;
 use App\Modules\Search\Support\ProductIndex;
 use App\Modules\Search\Support\SearchResults;
+use App\Modules\Search\Support\SqlSearchEngine;
 use App\Modules\Sellers\Enums\VerificationStatus;
 use App\Modules\Sellers\Models\Seller;
 use App\Support\Money\Money;
@@ -257,6 +258,21 @@ function usingMeilisearch(): void
     $client->waitForTask(
         $client->index($index)->updateSettings(ProductIndex::settings())['taskUid'],
     );
+}
+
+/**
+ * Point this test at the SQL fallback index.
+ *
+ * Unlike Meilisearch this needs nothing running, so these tests never skip:
+ * the `search_listings` table is migrated with everything else.
+ */
+function usingSqlSearch(): void
+{
+    config()->set('scout.driver', SqlSearchEngine::DRIVER);
+    /* Indexing has to have happened by the time the assertion runs. */
+    config()->set('scout.queue', false);
+
+    app(EngineManager::class)->forgetDrivers();
 }
 
 /**

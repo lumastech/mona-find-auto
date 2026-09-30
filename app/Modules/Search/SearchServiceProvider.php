@@ -10,6 +10,7 @@ use App\Modules\Inventory\Events\ProductFreshnessChanged;
 use App\Modules\Privacy\Support\PersonalDataRegistry;
 use App\Modules\Ratings\Events\SellerTrustScoreChanged;
 use App\Modules\Search\Console\RebuildSearchIndexCommand;
+use App\Modules\Search\Contracts\ListingSearch;
 use App\Modules\Search\Contracts\SellerReputationProvider;
 use App\Modules\Search\Jobs\RebuildSearchIndex;
 use App\Modules\Search\Listeners\ReindexOnFreshnessChange;
@@ -18,18 +19,24 @@ use App\Modules\Search\Listeners\ReindexOnListingStatusChange;
 use App\Modules\Search\Listeners\ReindexOnSellerTrustChange;
 use App\Modules\Search\Listeners\ReindexOnSellerVerificationChange;
 use App\Modules\Search\Privacy\SearchPersonalData;
+use App\Modules\Search\Services\MeilisearchListingSearch;
 use App\Modules\Search\Services\ProductDocument;
+use App\Modules\Search\Services\SqlListingSearch;
 use App\Modules\Search\Support\NeutralSellerReputation;
+use App\Modules\Search\Support\SqlSearchEngine;
 use App\Modules\Sellers\Events\SellerVerificationChanged;
 use App\Support\Modules\ModuleServiceProvider;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schedule;
+use Laravel\Scout\EngineManager;
 
 /**
  * Search module — how a buyer finds a part.
  *
- * The module owns one Meilisearch index of published listings and the
- * ordering they come back in. That ordering is the platform's most
+ * The module owns one index of published listings and the ordering they come
+ * back in — Meilisearch, or the `search_listings` table when `scout.driver`
+ * is `sql` on hosting that cannot run Meilisearch. That ordering is the platform's most
  * consequential product decision: it decides which Zambian shop gets the
  * call, and it is therefore configured rather than coded — the weights behind
  * every listing's quality score are `ranking.weight.*` in settings, and an
@@ -59,6 +66,19 @@ class SearchServiceProvider extends ModuleServiceProvider
 
         /* Memoises reputations across a chunk of listings; one per process. */
         $this->app->singleton(ProductDocument::class);
+
+        /*
+         * Meilisearch unless the platform is running the SQL fallback. Read
+         * per resolution rather than once, so a test that switches driver
+         * gets the matching query side.
+         */
+        $this->app->bind(ListingSearch::class, fn (Application $app): ListingSearch => config('scout.driver') === SqlSearchEngine::DRIVER
+            ? $app->make(SqlListingSearch::class)
+            : $app->make(MeilisearchListingSearch::class));
+
+        $this->callAfterResolving(EngineManager::class, function (EngineManager $engines): void {
+            $engines->extend(SqlSearchEngine::DRIVER, fn (Application $app): SqlSearchEngine => $app->make(SqlSearchEngine::class));
+        });
     }
 
     protected function bootModule(): void

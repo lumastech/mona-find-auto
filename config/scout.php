@@ -17,6 +17,11 @@ return [
     | Supported: "algolia", "meilisearch", "typesense", "turbopuffer",
     |            "database", "collection", "null"
     |
+    | MonaFind also registers "sql" (App\Modules\Search\Support\SqlSearchEngine):
+    | the listings index kept in the app's own database, for hosting that
+    | cannot run Meilisearch. Scout's own "database" driver does not work
+    | with the listings index — use "sql" instead.
+    |
     */
 
     'driver' => env('SCOUT_DRIVER', 'collection'),

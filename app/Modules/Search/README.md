@@ -139,6 +139,30 @@ than flush-then-import. Flushing is simpler and guarantees no orphans, but it
 would leave every buyer searching an empty catalogue for the length of the
 rebuild.
 
+## The SQL fallback (`SCOUT_DRIVER=sql`)
+
+For hosting that cannot run Meilisearch. `Support\SqlSearchEngine` is a Scout
+driver that writes each listing's document — the same array Meilisearch gets —
+into the `search_listings` table, so the observer, the listeners and the nightly
+rebuild keep it current with no changes. Buyers' searches go through
+`Contracts\ListingSearch`, bound to `Services\SqlListingSearch` or
+`Services\MeilisearchListingSearch` by `scout.driver`; `Services\ProductSearch`
+labels tiers and runs the category fallback the same way for both.
+
+`SqlListingSearch` restates the ranking rules as ORDER BY: leading words matched
+(Meilisearch's `last` strategy), then whether the listing's own name, numbers and
+fitment hold every word, then the buyer's sort, quality, and price descending.
+What it cannot do is tolerate typos. Distance is an equirectangular
+approximation in integer microdegrees — well under 1% error inside the 500km
+cap. Nothing in the table is a float; see the migration.
+
+Scout's built-in `database` driver is not a substitute: it builds its column
+list by calling `toSearchableArray()` on an empty `Product`, which has no seller,
+and crashes on every search.
+
+To switch: set `SCOUT_DRIVER=sql`, migrate, then `php artisan search:reindex`
+(without `--settings`, which is Meilisearch-only).
+
 ## Analytics
 
 Every search that had a query or a filter is written to `search_queries`;
@@ -153,3 +177,6 @@ rows are the point — they are the reference-data backlog written by buyers, an
 one) via the `usingMeilisearch()` helper, and skips with a message when there is
 none. Asserting Meilisearch's ranking against Scout's collection driver would
 only prove that a stub does what the stub was told.
+
+`SqlSearchTest` covers the SQL fallback through `usingSqlSearch()`. It needs
+nothing running, so it never skips.

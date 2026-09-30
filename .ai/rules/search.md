@@ -19,3 +19,6 @@ Quality scores are computed at index time from `ranking.weight.*` settings, so c
 Distance is never in the default order. Rating/review/dispute data comes from `Contracts\SellerReputationProvider`; Ratings and disputes bind it when they land.
 
 Tests in `tests/Feature/Search` need a real Meilisearch via the `usingMeilisearch()` helper and skip without one — the collection driver cannot reproduce ranking, geo or facets.
+
+## Search: two drivers, meilisearch or sql — never Scout's database driver
+`scout.driver` is `meilisearch` or `sql` (Support\SqlSearchEngine → `search_listings` table, for hosting without Meilisearch). `Contracts\ListingSearch` is bound per driver (MeilisearchListingSearch / SqlListingSearch); ProductSearch only labels tiers and runs the fallback. Any new filter, sort or facet must be added to BOTH implementations and to SqlListingRow + the migration. Scout's built-in `database` driver 500s every search (it calls toSearchableArray() on an empty Product). SqlSearchEngine::update() skips/deletes listings failing shouldBeSearchable() because Scout does not filter. `SqlSearchTest` (usingSqlSearch()) runs without Meilisearch.
