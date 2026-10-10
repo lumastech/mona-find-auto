@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Support\Facades\Vite;
 
 /**
  * Switch the policy on. It is off in `testing` by default, for the same
@@ -141,4 +142,20 @@ it('protects an authenticated page the same way', function (): void {
         ->get(route('dashboard'))
         ->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('X-Content-Type-Options', 'nosniff');
+});
+
+it('caps the preload Link header below Apache fcgi\'s 8190-byte header line limit', function (): void {
+    $assets = collect(range(1, 80))->mapWithKeys(fn (int $i): array => [
+        "https://monadev.example/build/assets/AppHeaderStateless.vue_vue_type_script_setup_true_lang-chunk{$i}.js" => [
+            'rel="modulepreload"',
+            'crossorigin',
+        ],
+    ])->all();
+
+    Vite::partialMock()->shouldReceive('preloadedAssets')->andReturn($assets);
+
+    $link = (string) $this->get(route('home'))->headers->get('Link');
+
+    expect($link)->not->toBe('')
+        ->and(strlen('Link: '.$link))->toBeLessThan(8190);
 });

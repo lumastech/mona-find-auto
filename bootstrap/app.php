@@ -67,7 +67,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            /*
+             * Capped: uncapped, a page's preload list runs past 8 KB in one
+             * `Link` header, and Apache's mod_proxy_fcgi rejects any header
+             * line over 8190 bytes — every page then 500s with "Error parsing
+             * script headers". The HTML still carries every modulepreload tag.
+             */
+            AddLinkHeadersForPreloadedAssets::using(20),
             /*
              * A suspended or closed account is cut off on its very next
              * request, not at its next login — a live session and a
