@@ -144,16 +144,23 @@ async function pay(): Promise<void> {
         return;
     }
 
+    const { email, ...customer } = props.lenco.customer;
+
     window.LencoPay?.getPaid({
         key: props.lenco.publicKey,
         reference: props.lenco.reference,
-        email: props.lenco.customer.email,
-        amount: props.lenco.amount,
+        email,
+        /*
+         * Lenco documents this as a number in kwacha, not a string.
+         * Converted only here, at the hand-off; everything on our side
+         * stays integer ngwee.
+         */
+        amount: Number(props.lenco.amount),
         currency: props.lenco.currency,
         channels: props.lenco.channels,
         bearer: props.lenco.bearer,
         label: props.lenco.label,
-        customer: props.lenco.customer,
+        customer,
         billing: props.lenco.billing,
 
         /* All three routes lead to the same server-side check. */
