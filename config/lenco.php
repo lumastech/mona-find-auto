@@ -58,10 +58,12 @@ return [
     | Keyed by environment so that switching one env var moves the API calls
     | and the widget together, and neither is ever chosen on its own.
     |
-    | The widget really does have two hosts. The REST API does not: Lenco
-    | serves both environments from the same host and tells them apart by the
-    | API token, so the sandbox row below is not a typo. Both stay
-    | env-overridable in case that changes.
+    | Lenco serves both environments from the same hosts — the REST API and
+    | the widget alike — and tells them apart by the key, so the identical
+    | rows below are not a typo. (The documented sandbox widget host,
+    | pay.sandbox.lenco.co, was refusing TLS connections as of 2026-10-10;
+    | sandbox keys work on pay.lenco.co.) Both stay env-overridable in case
+    | that changes.
     |
     */
 
@@ -69,7 +71,7 @@ return [
 
         'sandbox' => [
             'api' => env('LENCO_API_URL', 'https://api.lenco.co/access/v2'),
-            'widget' => env('LENCO_WIDGET_URL', 'https://pay.sandbox.lenco.co/js/v1/inline.js'),
+            'widget' => env('LENCO_WIDGET_URL', 'https://pay.lenco.co/js/v1/inline.js'),
         ],
 
         'live' => [

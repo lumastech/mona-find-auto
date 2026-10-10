@@ -58,7 +58,7 @@ it('hands the widget a decimal amount and the sandbox script', function (): void
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('lenco.amount', '1234.56')
             ->where('lenco.amountNgwee', 123_456)
-            ->where('lenco.widgetUrl', 'https://pay.sandbox.lenco.co/js/v1/inline.js')
+            ->where('lenco.widgetUrl', 'https://pay.lenco.co/js/v1/inline.js')
             ->where('lenco.reference', 'MFA-'.$group->public_id.'-1')
         );
 });

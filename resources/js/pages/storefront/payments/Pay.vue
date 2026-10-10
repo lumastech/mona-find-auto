@@ -104,7 +104,14 @@ function loadWidget(): Promise<void> {
         script.src = props.lenco.widgetUrl;
         script.async = true;
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error('load failed'));
+        script.onerror = () => {
+            /*
+             * Drop the dead tag, or the next attempt finds it above and
+             * waits on events that already fired — a spinner forever.
+             */
+            script.remove();
+            reject(new Error('load failed'));
+        };
 
         document.head.appendChild(script);
     });
@@ -144,24 +151,33 @@ async function pay(): Promise<void> {
         return;
     }
 
-    const { email, ...customer } = props.lenco.customer;
+    scriptFailed.value = false;
+
+    /*
+     * A plain copy, not the props themselves. Inertia page props are Vue
+     * reactive proxies, and the widget forwards this config to its iframe
+     * with postMessage, which cannot clone a proxy. The clone error is
+     * thrown inside Lenco's script, so the overlay just spins forever.
+     */
+    const lenco: LencoConfig = JSON.parse(JSON.stringify(props.lenco));
+    const { email, ...customer } = lenco.customer;
 
     window.LencoPay?.getPaid({
-        key: props.lenco.publicKey,
-        reference: props.lenco.reference,
+        key: lenco.publicKey,
+        reference: lenco.reference,
         email,
         /*
          * Lenco documents this as a number in kwacha, not a string.
          * Converted only here, at the hand-off; everything on our side
          * stays integer ngwee.
          */
-        amount: Number(props.lenco.amount),
-        currency: props.lenco.currency,
-        channels: props.lenco.channels,
-        bearer: props.lenco.bearer,
-        label: props.lenco.label,
+        amount: Number(lenco.amount),
+        currency: lenco.currency,
+        channels: lenco.channels,
+        bearer: lenco.bearer,
+        label: lenco.label,
         customer,
-        billing: props.lenco.billing,
+        billing: lenco.billing,
 
         /* All three routes lead to the same server-side check. */
         onSuccess: () => void verify(),
