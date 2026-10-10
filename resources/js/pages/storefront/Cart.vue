@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import cartRoutes from '@/routes/cart';
+import checkout from '@/routes/checkout';
 import { home } from '@/routes';
 import listings from '@/routes/listings';
 import sellers from '@/routes/sellers';
@@ -360,15 +361,15 @@ const remove = (line: CartLine): void => {
                     </p>
 
                     <Button
+                        v-if="cart.blocks_checkout"
                         class="w-full"
-                        :disabled="cart.blocks_checkout"
-                        :title="
-                            cart.blocks_checkout
-                                ? 'Sort out the flagged lines before checking out.'
-                                : undefined
-                        "
+                        disabled
+                        title="Sort out the flagged lines before checking out."
                     >
                         Checkout
+                    </Button>
+                    <Button v-else class="w-full" as-child>
+                        <Link :href="checkout.show()">Checkout</Link>
                     </Button>
 
                     <p

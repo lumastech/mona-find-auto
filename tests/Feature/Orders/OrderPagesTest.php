@@ -249,6 +249,47 @@ it('shows staff what the buyer accepted, version by version', function (): void 
         ->assertOk();
 });
 
+it('sends the buyer straight to the pay screen once the order is placed', function (): void {
+    app(CartService::class)->add($this->buyer, $this->variant, 1);
+
+    $group = app(CheckoutService::class)->view($this->buyer)->groups[0];
+
+    $response = $this->actingAs($this->buyer)->post(route('checkout.store'), [
+        'payment_method' => PaymentMethod::MobileMoney->value,
+        'selections' => [[
+            'seller_id' => $this->seller->getKey(),
+            'fulfilment_method' => FulfilmentMethod::Pickup->value,
+            'accepted' => true,
+            'accepted_policies' => array_map(
+                static fn (array $policy): array => [
+                    'policy_id' => $policy['policy_id'],
+                    'version' => $policy['version'],
+                ],
+                $group->policyFingerprint(),
+            ),
+        ]],
+    ]);
+
+    $order = Order::query()->with('group')->latest('id')->firstOrFail();
+
+    $response->assertRedirect(route('payments.show', $order->group->public_id));
+});
+
+it('offers a pay button on an unpaid order and drops it once paid', function (): void {
+    $order = Order::factory()->forBuyer($this->buyer)->forSeller($this->seller)->create();
+
+    $this->actingAs($this->buyer)
+        ->get(route('orders.show', $order->number))
+        ->assertInertia(fn ($page) => $page
+            ->where('payUrl', route('payments.show', $order->group->public_id)));
+
+    $this->machine->markPaid($order);
+
+    $this->actingAs($this->buyer)
+        ->get(route('orders.show', $order->number))
+        ->assertInertia(fn ($page) => $page->where('payUrl', null));
+});
+
 it('refuses a checkout post that skipped the terms modal', function (): void {
     app(CartService::class)->add($this->buyer, $this->variant, 1);
 

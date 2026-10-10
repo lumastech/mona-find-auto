@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Contracts\PaymentGateway;
 use App\Integrations\Payments\FakePaymentGateway;
 use App\Models\User;
+use App\Modules\Orders\Enums\PaymentMethod;
 use App\Modules\Payments\Models\PayoutBatch;
 use App\Modules\Payments\Models\Refund;
 use App\Modules\Payments\Services\CollectionService;
@@ -72,6 +73,28 @@ it('uses the live widget host outside sandbox', function (): void {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('lenco.widgetUrl', 'https://pay.lenco.co/js/v1/inline.js')
         );
+});
+
+it('opens the widget on the channel the buyer chose at checkout', function (): void {
+    $group = payableGroup();
+    $group->forceFill(['payment_method' => PaymentMethod::MobileMoney])->save();
+
+    $this->actingAs($group->buyer)
+        ->get(route('payments.show', $group->public_id))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('lenco.channels', ['mobile-money']));
+});
+
+it('offers every enabled channel when the chosen one has been switched off', function (): void {
+    config()->set('lenco.collections.channels', ['card']);
+
+    $group = payableGroup();
+    $group->forceFill(['payment_method' => PaymentMethod::MobileMoney])->save();
+
+    $this->actingAs($group->buyer)
+        ->get(route('payments.show', $group->public_id))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('lenco.channels', ['card']));
 });
 
 it('refuses to show another buyer the pay page', function (): void {

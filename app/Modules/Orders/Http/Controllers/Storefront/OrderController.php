@@ -90,6 +90,10 @@ class OrderController extends Controller
                 $this->ratings->promptsFor($order, $this->currentUser($request)),
             ),
             'disputeReasons' => DisputeReason::options(),
+            /* The group's pay screen while unpaid — one payment covers every shop in it. */
+            'payUrl' => $order->status === OrderStatus::PendingPayment
+                ? route('payments.show', $order->group->public_id)
+                : null,
             /* Null in every environment without a key; the page falls back to a directions link. */
             'mapsApiKey' => config('services.google_maps.browser_key'),
         ]);

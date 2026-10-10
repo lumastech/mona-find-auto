@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, useHttp } from '@inertiajs/vue3';
 import {
     CreditCard,
     Loader2,
@@ -113,22 +113,23 @@ function loadWidget(): Promise<void> {
 /**
  * Ask our server what happened, then go where it says.
  *
- * Sends no payload at all — see the component docblock.
+ * Sends no payload at all — see the component docblock. A plain HTTP call
+ * rather than an Inertia visit, because the endpoint answers in JSON. Whatever
+ * it answers, or if it fails, the status page is the next stop: it re-asks the
+ * gateway itself and polls while the payment is still pending.
  */
-function verify(): void {
+const http = useHttp();
+
+async function verify(): Promise<void> {
     isBusy.value = true;
 
-    router.post(
-        props.lenco.verifyUrl,
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                isBusy.value = false;
-                router.visit(props.lenco.statusUrl);
-            },
-        },
-    );
+    try {
+        await http.submit({ url: props.lenco.verifyUrl, method: 'post' });
+    } catch {
+        /* The status page will find out for itself. */
+    }
+
+    router.visit(props.lenco.statusUrl);
 }
 
 async function pay(): Promise<void> {
@@ -156,7 +157,7 @@ async function pay(): Promise<void> {
         billing: props.lenco.billing,
 
         /* All three routes lead to the same server-side check. */
-        onSuccess: () => verify(),
+        onSuccess: () => void verify(),
         onConfirmationPending: () => router.visit(props.lenco.statusUrl),
         onClose: () => {
             isBusy.value = false;

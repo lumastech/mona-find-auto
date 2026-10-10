@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { AlertTriangle, Check, FileText, Phone } from '@lucide/vue';
+import { AlertTriangle, Check, FileText, Lock, Phone } from '@lucide/vue';
 import Money from '@/components/Money.vue';
 import ContactThreadButton from '@/components/messaging/ContactThreadButton.vue';
 import DisputeDialog from '@/components/orders/DisputeDialog.vue';
@@ -36,6 +36,8 @@ const props = defineProps<{
     ratingPrompts: RatingPrompt[];
     disputeReasons: { value: string; label: string; guidance: string }[];
     mapsApiKey: string | null;
+    /* Set while the order is unpaid. Leads to the whole group's pay screen. */
+    payUrl: string | null;
 }>();
 
 const confirmReceipt = (): void => {
@@ -70,8 +72,22 @@ const deadline = (iso: string): string =>
             </p>
         </header>
 
+        <Alert v-if="payUrl">
+            <Lock class="size-4" aria-hidden="true" />
+            <AlertTitle>Waiting for your payment</AlertTitle>
+            <AlertDescription class="space-y-3">
+                <p>
+                    The seller is not told about this order until it is paid.
+                    One payment covers every shop you ordered from together.
+                </p>
+                <Button as-child>
+                    <Link :href="payUrl">Pay now</Link>
+                </Button>
+            </AlertDescription>
+        </Alert>
+
         <Alert
-            v-if="order.dispute && order.dispute.status !== 'resolved'"
+            v-else-if="order.dispute && order.dispute.status !== 'resolved'"
             variant="destructive"
         >
             <AlertTriangle class="size-4" aria-hidden="true" />

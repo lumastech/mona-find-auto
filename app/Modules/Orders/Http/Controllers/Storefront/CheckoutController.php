@@ -79,11 +79,11 @@ class CheckoutController extends Controller
         }
 
         /*
-         * Straight to the first order rather than to a list. The buyer's next
-         * move is to pay, and place() cannot return a group with no orders in
-         * it — an empty cart is refused before anything is written.
+         * Straight to the pay screen. One payment covers every shop in the
+         * group, so the buyer pays once here rather than order by order; an
+         * order they walk away from stays payable from its own page.
          */
-        return to_route('orders.show', $group->orders->firstOrFail()->number)
+        return to_route('payments.show', $group->public_id)
             ->with('toast', [
                 'type' => 'success',
                 'message' => __('Your order is placed. Pay to send it to the seller.'),

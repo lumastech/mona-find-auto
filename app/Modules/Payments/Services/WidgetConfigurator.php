@@ -49,7 +49,7 @@ class WidgetConfigurator
             'amount' => $attempt['amount'],
             'amountNgwee' => $attempt['amount_ngwee'],
             'currency' => 'ZMW',
-            'channels' => array_values((array) config('lenco.collections.channels', ['card', 'mobile-money'])),
+            'channels' => $this->channels($group),
             'bearer' => (string) settings('payments.fee_bearer', config('lenco.collections.bearer', 'merchant')),
             'label' => __('MonaFind order :id', ['id' => $group->public_id]),
 
@@ -60,6 +60,24 @@ class WidgetConfigurator
             'verifyUrl' => route('payments.verify', $group->public_id),
             'statusUrl' => route('payments.status', $group->public_id),
         ];
+    }
+
+    /**
+     * The channel the buyer chose at checkout, so the widget opens on it
+     * rather than asking again — provided the platform still accepts it.
+     * A channel switched off since the order was placed falls back to every
+     * enabled one, so the group stays payable.
+     *
+     * @return list<string>
+     */
+    private function channels(OrderGroup $group): array
+    {
+        /** @var list<string> $enabled */
+        $enabled = array_values((array) config('lenco.collections.channels', ['card', 'mobile-money']));
+
+        $chosen = $group->payment_method->gatewayChannel();
+
+        return in_array($chosen, $enabled, true) ? [$chosen] : $enabled;
     }
 
     /**
