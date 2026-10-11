@@ -58,7 +58,7 @@ const tab = ref<'received' | 'given'>('received');
 <template>
     <Head title="Reviews" />
 
-    <div class="space-y-6 p-4">
+    <div class="space-y-6  px-4 sm:px-4 lg:px-8">
         <Card>
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">

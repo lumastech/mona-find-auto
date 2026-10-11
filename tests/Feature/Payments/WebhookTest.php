@@ -10,7 +10,9 @@ use App\Modules\Payments\Models\LencoWebhookEvent;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Services\CollectionService;
 use Database\Seeders\SettingsSeeder;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 
 /**
@@ -62,6 +64,17 @@ function collectionEvent(string $reference, string $event = 'collection.successf
         ],
     ];
 }
+
+/**
+ * Lenco cannot send a CSRF token. The framework skips CSRF checks under test,
+ * so a request here would pass either way — assert the resolved middleware
+ * instead, which is what failed in production when the CSRF class was renamed.
+ */
+it('does not run the CSRF check on the webhook route', function (): void {
+    $route = Route::getRoutes()->getByName('webhooks.lenco');
+
+    expect(Route::gatherRouteMiddleware($route))->not->toContain(PreventRequestForgery::class);
+});
 
 it('rejects a webhook with no signature and stores nothing', function (): void {
     $payload = collectionEvent('MFA-ABC-1');

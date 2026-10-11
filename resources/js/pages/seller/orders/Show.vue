@@ -103,7 +103,7 @@ const canCancel = computed(() =>
 <template>
     <Head :title="`Order ${order.number}`" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-4 sm:px-4 lg:px-8">
         <header class="space-y-2">
             <div class="flex flex-wrap items-center gap-2">
                 <h1 class="text-xl font-semibold tracking-tight">

@@ -21,7 +21,7 @@ declare(strict_types=1);
 
 use App\Modules\Payments\Http\Controllers\Storefront\PaymentController;
 use App\Modules\Payments\Http\Controllers\Webhooks\LencoWebhookController;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function (): void {
@@ -51,5 +51,5 @@ Route::middleware('auth')->group(function (): void {
  */
 Route::post('webhooks/lenco', LencoWebhookController::class)
     ->middleware('throttle:webhooks')
-    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->withoutMiddleware([PreventRequestForgery::class])
     ->name('webhooks.lenco');
